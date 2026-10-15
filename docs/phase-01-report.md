@@ -72,7 +72,7 @@ There are no tenant-scoped endpoints yet. The following were checked:
 
 ## 7. Outstanding issues and decisions
 
-1. **A-010 (approval needed):** Vitest replaces Jest, because NestJS 12 is published as ES modules only. Everything else in the testing plan is unchanged.
+1. **A-010 (approved 2026-10-15):** Vitest replaces Jest, because NestJS 12 is published as ES modules only. Everything else in the testing plan is unchanged.
 2. **A-011 and A-012 (FYI, proposed):** linters per app, and the runtime and version choices. These include PostgreSQL 17 and TypeScript 6.0.
 3. **A-004, A-005 and A-008** remain proposed. Phase 01 used them as written.
 4. **Not yet run on GitHub:** CI has not run. The Dockerfiles have only been built through a sandbox certificate workaround (see `migration-status.md`).
@@ -100,6 +100,6 @@ Before starting it:
 - Approve or change **A-002**: application-level tenant scoping, plus a decision on whether to add PostgreSQL Row-Level Security as defence in depth.
 - Confirm **D-012**: email and password login only in the first release.
 - Choose an email provider for verification and password-reset emails. Mailpit covers local development.
-- Accept Phase 01, including A-010.
+- Accept Phase 01.
 
 Phase 02 does not depend on D-005 (plans) or D-006 (payment provider).

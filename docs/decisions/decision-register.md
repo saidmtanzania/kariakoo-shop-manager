@@ -44,7 +44,7 @@ Business decisions are `D-xxx`; architecture decisions are `A-xxx`. A decision i
 | A-007 | Outbox for side effects, no Redis initially | Proposed | 03 |
 | A-008 | IDs and money representation | Proposed | 01 |
 | A-009 | Technology stack | Approved (owner plan) | — |
-| A-010 | Vitest instead of Jest | Proposed (used in Phase 01) | 01 |
+| A-010 | Vitest instead of Jest | Approved | — |
 | A-011 | Linters per app | Proposed (used in Phase 01) | 01 |
 | A-012 | Runtime and major versions | Proposed (used in Phase 01) | 01 |
 
@@ -221,13 +221,13 @@ UUID v7 IDs; Prisma `Decimal` / `decimal.js` in code; strings in JSON; never JS 
 
 *Phase 01 (2026-10-15):* `newId()` helper (UUID v7, `uuid` package) and `moneyStringSchema` / `quantityStringSchema` in `packages/shared`. Still awaiting owner approval.
 
-## A-010 Vitest instead of Jest — Proposed
+## A-010 Vitest instead of Jest — Approved
 
 - **Context:** The approved stack (A-009) names Jest. NestJS 12, released after the plan was written, is published as ES modules only, and its project generator now ships Vitest. Jest's ES-module support is still experimental (`--experimental-vm-modules`) and needs extra transform setup for Nest's decorators.
 - **Options:** (1) Vitest for unit, component and integration tests, keeping Supertest and Playwright; (2) Jest with experimental ESM mode and a decorator-aware transform; (3) pin NestJS 11 (CommonJS) to keep Jest.
 - **Recommendation:** Option 1. Vitest's API (`describe`, `it`, `expect`, mocks via `vi`) is Jest-compatible, so the testing strategy is unchanged apart from the runner. Next.js documents Vitest for component tests as well, so the whole repository uses one runner.
 - **Consequences:** `docs/architecture/testing-strategy.md` and AGENTS.md mention Vitest where they said Jest. Option 3 would start the project on an older major version.
-- **Status:** Proposed — used in Phase 01, awaiting owner approval. **Date:** 2026-10-15
+- **Status:** Approved by Taibi on 2026-10-15 (Option 1).
 
 ## A-011 Linters per app — Proposed
 
@@ -248,3 +248,4 @@ UUID v7 IDs; Prisma `Decimal` / `decimal.js` in code; strings in JSON; never JS 
 |---|---|---|---|
 | 2026-10-12 | A-001, A-009 | Owner (project plan message) | Stated directly in the plan. |
 | 2026-10-12 | D-001, D-002, D-003, D-004 | Taibi (decision card in project thread) | Approved all four recommended options as written. |
+| 2026-10-15 | A-010 | Taibi (decision card in project thread) | Vitest replaces Jest; Supertest and Playwright unchanged. |

@@ -23,7 +23,7 @@ Prioritize correctness, simple workflows, data integrity, usability, security, m
 - Database: PostgreSQL.
 - ORM: Prisma.
 - Offline: PWA service worker and IndexedDB.
-- Testing: Jest, Supertest and Playwright. (Phase 01 uses Vitest in place of Jest because NestJS 12 is ES-modules only; see proposed decision A-010.)
+- Testing: Vitest, Supertest and Playwright (Vitest replaces Jest; approved decision A-010).
 - Development environment: Docker Compose.
 - Use Redis only when a documented requirement justifies it.
 - Start with a modular monolith. Do not create microservices without an approved architecture decision.
