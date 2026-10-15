@@ -35,7 +35,7 @@ describe('Authentication (real PostgreSQL)', () => {
         .expect(202);
       expect(res.body).toEqual({ message: ACCEPTED_MESSAGE });
 
-      const { mail, token } = lastMailTo(app, email);
+      const { mail, token } = await lastMailTo(app, email);
       expect(mail?.subject).toMatch(/confirm/i);
       expect(mail?.text).toContain('http://localhost:3000/verify-email#token=');
       expect(token).toBeDefined();
@@ -60,7 +60,7 @@ describe('Authentication (real PostgreSQL)', () => {
         .expect(202);
       expect(second.body).toEqual({ message: ACCEPTED_MESSAGE });
       expect(await prisma.user.count()).toBe(1);
-      expect(lastMailTo(app, email).mail?.subject).toMatch(
+      expect((await lastMailTo(app, email)).mail?.subject).toMatch(
         /already have an account/i,
       );
     });
@@ -92,7 +92,7 @@ describe('Authentication (real PostgreSQL)', () => {
         .expect(403);
       expect(blocked.body.code).toBe('email_not_verified');
 
-      const { token } = lastMailTo(app, email);
+      const { token } = await lastMailTo(app, email);
       await agent.post('/api/v1/auth/verify-email').send({ token }).expect(204);
       const reused = await agent
         .post('/api/v1/auth/verify-email')
@@ -111,7 +111,7 @@ describe('Authentication (real PostgreSQL)', () => {
       await client(app)
         .post('/api/v1/auth/register')
         .send({ fullName: 'E', email, password: PASSWORD });
-      const { token } = lastMailTo(app, email);
+      const { token } = await lastMailTo(app, email);
       await prisma.authToken.updateMany({
         data: { expiresAt: new Date(Date.now() - 1000) },
       });
@@ -126,12 +126,12 @@ describe('Authentication (real PostgreSQL)', () => {
       await client(app)
         .post('/api/v1/auth/register')
         .send({ fullName: 'R', email, password: PASSWORD });
-      const first = lastMailTo(app, email).token;
+      const first = (await lastMailTo(app, email)).token;
       await client(app)
         .post('/api/v1/auth/resend-verification')
         .send({ email })
         .expect(202);
-      const second = lastMailTo(app, email).token;
+      const second = (await lastMailTo(app, email)).token;
       expect(second).not.toBe(first);
       await client(app)
         .post('/api/v1/auth/verify-email')
@@ -245,7 +245,7 @@ describe('Authentication (real PostgreSQL)', () => {
         .send({ email })
         .expect(202);
       expect(res.body).toEqual({ message: ACCEPTED_MESSAGE });
-      const { token, mail } = lastMailTo(app, email);
+      const { token, mail } = await lastMailTo(app, email);
       expect(mail?.text).toContain('/reset-password#token=');
 
       const newPassword = 'a brand new passphrase';
@@ -267,7 +267,7 @@ describe('Authentication (real PostgreSQL)', () => {
         .post('/api/v1/auth/login')
         .send({ email, password: newPassword })
         .expect(204);
-      expect(lastMailTo(app, email).mail?.subject).toMatch(
+      expect((await lastMailTo(app, email)).mail?.subject).toMatch(
         /password was changed/i,
       );
     });
@@ -286,7 +286,7 @@ describe('Authentication (real PostgreSQL)', () => {
       await client(app)
         .post('/api/v1/auth/register')
         .send({ fullName: 'P', email, password: PASSWORD });
-      const { token } = lastMailTo(app, email);
+      const { token } = await lastMailTo(app, email);
       await client(app)
         .post('/api/v1/auth/password/reset')
         .send({ token, password: 'new password!' })

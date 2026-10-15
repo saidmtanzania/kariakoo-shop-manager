@@ -3,6 +3,7 @@ import request from 'supertest';
 import { CSRF_HEADER, CSRF_HEADER_VALUE } from '@ksm/shared';
 import { PrismaService } from '../../../backend/src/database/prisma.service.js';
 import { MailService } from '../../../backend/src/mail/mail.service.js';
+import { OutboxWorker } from '../../../backend/src/outbox/outbox.worker.js';
 
 export const PASSWORD = 'correct horse battery';
 export const CSRF = { [CSRF_HEADER]: CSRF_HEADER_VALUE };
@@ -14,23 +15,30 @@ export function client(app: INestApplication): Client {
 }
 
 /**
- * Empties every Phase 02 table. TRUNCATE does not fire the append-only row
- * trigger on audit_logs, which only blocks UPDATE and DELETE.
+ * Empties every application table except the seeded permission catalog.
+ * TRUNCATE does not fire the append-only row trigger on audit_logs, which
+ * only blocks UPDATE and DELETE.
  */
 export async function resetDatabase(app: INestApplication): Promise<void> {
   await app
     .get(PrismaService)
     .$executeRawUnsafe(
-      'TRUNCATE audit_logs, sessions, auth_tokens, shop_memberships, shops, users, rate_limit_counters CASCADE',
+      'TRUNCATE audit_logs, outbox_messages, invitation_roles, invitations, membership_roles, role_permissions, roles, sessions, auth_tokens, shop_memberships, shops, users, rate_limit_counters CASCADE',
     );
-  app.get(MailService).outbox.length = 0;
+  app.get(MailService).sent.length = 0;
 }
 
-/** Most recent email to an address, and the token in its link fragment. */
-export function lastMailTo(app: INestApplication, to: string) {
+/** Delivers every queued outbox message now (the worker is off in tests). */
+export async function drainOutbox(app: INestApplication): Promise<void> {
+  await app.get(OutboxWorker).drain();
+}
+
+/** Delivers queued mail, then returns the newest email to an address and its link token. */
+export async function lastMailTo(app: INestApplication, to: string) {
+  await drainOutbox(app);
   const mail = app
     .get(MailService)
-    .outbox.filter((m) => m.to === to)
+    .sent.filter((m) => m.to === to)
     .at(-1);
   const token = mail?.text.match(/#token=([\w%-]+)/)?.[1];
   return { mail, token: token ? decodeURIComponent(token) : undefined };
@@ -43,14 +51,17 @@ export function uniqueEmail(label = 'user'): string {
 }
 
 /** Registers, verifies and signs in a user; returns their signed-in client. */
-export async function signedInUser(app: INestApplication, label = 'user') {
-  const email = uniqueEmail(label);
+export async function signedInUser(
+  app: INestApplication,
+  label = 'user',
+  email = uniqueEmail(label),
+) {
   const agent = client(app);
   await agent
     .post('/api/v1/auth/register')
     .send({ fullName: `${label} Tester`, email, password: PASSWORD })
     .expect(202);
-  const { token } = lastMailTo(app, email);
+  const { token } = await lastMailTo(app, email);
   await agent.post('/api/v1/auth/verify-email').send({ token }).expect(204);
   await agent
     .post('/api/v1/auth/login')

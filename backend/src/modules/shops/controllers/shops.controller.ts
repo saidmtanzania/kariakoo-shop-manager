@@ -2,8 +2,9 @@ import { Body, Controller, Get, Patch, Post } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import type { MembershipSummary, ShopDetails } from '@ksm/shared';
 import {
-  OwnerOnly,
+  RequirePermission,
   ShopScoped,
+  SignedIn,
 } from '../../../common/auth/access.decorators.js';
 import {
   Client,
@@ -31,6 +32,7 @@ export class ShopsController {
 
   /** Any signed-in user can create a shop and becomes its owner. */
   @Post()
+  @SignedIn()
   create(
     @CurrentAuth() auth: AuthContext,
     @Body() dto: CreateShopDto,
@@ -41,6 +43,7 @@ export class ShopsController {
 
   /** Shops the signed-in user belongs to. */
   @Get()
+  @SignedIn()
   async list(
     @CurrentAuth() auth: AuthContext,
   ): Promise<{ shops: MembershipSummary[] }> {
@@ -54,8 +57,7 @@ export class ShopsController {
   }
 
   @Patch('current')
-  @ShopScoped()
-  @OwnerOnly()
+  @RequirePermission('settings.manage')
   update(
     @CurrentShop() shop: ShopContext,
     @Body() dto: UpdateShopDto,

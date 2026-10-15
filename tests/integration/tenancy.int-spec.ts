@@ -301,7 +301,7 @@ describe('Shop isolation (real PostgreSQL)', () => {
         .patch('/api/v1/shops/current')
         .send({ name: 'Mine now' })
         .expect(403);
-      expect(res.body.code).toBe('forbidden');
+      expect(res.body.code).toBe('permission_denied');
     });
 
     it.each(['REMOVED', 'SUSPENDED'] as const)(

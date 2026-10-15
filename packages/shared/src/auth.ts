@@ -69,6 +69,8 @@ export interface SessionInfo {
   user: SessionUser;
   activeShopId: string | null;
   memberships: MembershipSummary[];
+  /** The caller's permissions in the active shop (all shop permissions for owners). */
+  permissions: string[];
 }
 
 export interface ShopDetails {

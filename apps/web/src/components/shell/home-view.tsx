@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
+import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
@@ -17,7 +18,12 @@ import {
 } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { apiFetch } from '@/lib/api';
-import { SESSION_KEY, useSession } from '@/lib/session';
+import {
+  can,
+  SESSION_KEY,
+  useHasPendingInvitation,
+  useSession,
+} from '@/lib/session';
 
 /**
  * Signed-in home. Which shop is shown is decided by the server-side session;
@@ -49,6 +55,7 @@ export function HomeView() {
         </p>
         <LogoutButton />
       </header>
+      <PendingInvitation />
       {info.memberships.length === 0 ? (
         <Card>
           <CardHeader>
@@ -198,11 +205,30 @@ function ActiveShop({ info }: { info: SessionInfo }) {
             </select>
           </div>
         ) : null}
+        {can(info, 'users.read') ? (
+          <Button asChild>
+            <Link href="/team">{t('Home.team')}</Link>
+          </Button>
+        ) : null}
         <Button asChild variant="outline">
           <Link href="/shops/new">{t('Home.newShop')}</Link>
         </Button>
       </CardContent>
     </Card>
+  );
+}
+
+/** Shown after signing in from an invitation link, to finish joining. */
+function PendingInvitation() {
+  const t = useTranslations('Home');
+  if (!useHasPendingInvitation()) return null;
+  return (
+    <Alert>
+      {t('pendingInvitation')}{' '}
+      <Link className="underline" href="/invitations/accept">
+        {t('openInvitation')}
+      </Link>
+    </Alert>
   );
 }
 

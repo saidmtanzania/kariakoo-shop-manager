@@ -77,3 +77,22 @@ export function passwordChangedMessage(to: string): MailMessage {
     html: layout(lines),
   };
 }
+
+export function invitationMessage(
+  to: string,
+  shopName: string,
+  inviterName: string | null,
+  url: string,
+): MailMessage {
+  const lines = [
+    `${inviterName ?? 'A shop owner'} invited you to join ${shopName} on Kariakoo Shop Manager.`,
+    `Open the link to accept. If you do not have an account yet, create one with this email address (${to}) first. The invitation expires in 7 days and works once.`,
+    'If you were not expecting this, you can ignore this email.',
+  ];
+  return {
+    to,
+    subject: `Join ${shopName} on Kariakoo Shop Manager`,
+    text: `${lines.join('\n\n')}\n\n${url}\n`,
+    html: layout(lines, { label: 'Accept invitation', url }),
+  };
+}

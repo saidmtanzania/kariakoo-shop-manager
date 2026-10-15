@@ -15,6 +15,8 @@ export interface ShopContext {
   membershipId: string;
   userId: string;
   isOwner: boolean;
+  /** Effective permissions in this shop, loaded on every request. */
+  permissions: ReadonlySet<string>;
 }
 
 export interface AppRequest extends Request {

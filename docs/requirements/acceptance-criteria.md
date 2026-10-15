@@ -36,14 +36,14 @@ Criteria are written as testable statements (Given/When/Then where useful). Each
 
 ## AC-03 Dynamic RBAC and invitations
 
-- [ ] Each protected endpoint declares its required permission; an architecture test fails if an endpoint has none (or is not explicitly public).
-- [ ] Allowed and forbidden tests for each permission.
-- [ ] A role containing a permission the actor does not hold cannot be created or assigned by that actor.
-- [ ] Platform permissions never appear in the shop catalog and cannot be assigned through shop APIs.
-- [ ] Invitation tokens: stored as SHA-256 hashes; expired, revoked, used and email-mismatch tokens are rejected.
-- [ ] Seat limit enforced at invite and at acceptance.
-- [ ] Role and membership changes take effect on the next request and are audited.
-- [ ] The last owner cannot be removed or demoted.
+- [x] Each protected endpoint declares its required permission; an architecture test fails if an endpoint has none (or is not explicitly public). *(Phase 03: `routes.int-spec.ts` reads every controller method's declaration; shop routes without a permission must be on a two-item list.)*
+- [x] Allowed and forbidden tests for each permission. *(Phase 03: every permission that guards a route today — `users.read`, `users.invite`, `users.manage`, `roles.manage`, `audit.read`, `settings.manage` — plus owner-only routes. Later phases add tests for the permissions their routes use.)*
+- [x] A role containing a permission the actor does not hold cannot be created or assigned by that actor.
+- [x] Platform permissions never appear in the shop catalog and cannot be assigned through shop APIs. *(Also refused by a database trigger.)*
+- [x] Invitation tokens: stored as SHA-256 hashes; expired, revoked, used and email-mismatch tokens are rejected.
+- [x] Seat limit enforced at invite and at acceptance. *(Interim `SEAT_LIMIT` setting until plans exist, decision D-005.)*
+- [x] Role and membership changes take effect on the next request and are audited.
+- [x] The last owner cannot be removed or demoted.
 
 ## AC-04 Plans and subscriptions
 

@@ -80,4 +80,26 @@ describe('validateEnv', () => {
       /LOG_LEVEL/,
     );
   });
+
+  it('treats an empty seat limit as no limit and validates a set one', () => {
+    expect(
+      validateEnv({ ...valid, SEAT_LIMIT: '' }).SEAT_LIMIT,
+    ).toBeUndefined();
+    expect(validateEnv(valid).SEAT_LIMIT).toBeUndefined();
+    expect(validateEnv({ ...valid, SEAT_LIMIT: '5' }).SEAT_LIMIT).toBe(5);
+    expect(() => validateEnv({ ...valid, SEAT_LIMIT: '0' })).toThrow(
+      /SEAT_LIMIT/,
+    );
+  });
+
+  it('defaults the outbox worker on and the rate limit multiplier to 1', () => {
+    expect(validateEnv(valid)).toMatchObject({
+      OUTBOX_WORKER: 'on',
+      OUTBOX_POLL_MS: 1000,
+      RATE_LIMIT_MULTIPLIER: 1,
+    });
+    expect(() =>
+      validateEnv({ ...valid, RATE_LIMIT_MULTIPLIER: '1000' }),
+    ).toThrow(/RATE_LIMIT_MULTIPLIER/);
+  });
 });

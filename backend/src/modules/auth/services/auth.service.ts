@@ -19,6 +19,7 @@ import {
   UserStatus,
 } from '../../../database/index.js';
 import { MailService } from '../../../mail/mail.service.js';
+import { OutboxService } from '../../../outbox/outbox.service.js';
 import {
   accountExistsMessage,
   passwordChangedMessage,
@@ -26,6 +27,7 @@ import {
   verifyEmailMessage,
 } from '../../../mail/templates.js';
 import { AuditService } from '../../audit/services/audit.service.js';
+import { AuthorizationService } from '../../authorization/services/authorization.service.js';
 import { MembershipsService } from '../../memberships/services/memberships.service.js';
 import { PasswordService } from '../../users/services/password.service.js';
 import {
@@ -54,7 +56,9 @@ export class AuthService {
     private readonly tokens: AuthTokensService,
     private readonly sessions: SessionService,
     private readonly memberships: MembershipsService,
+    private readonly authorization: AuthorizationService,
     private readonly mail: MailService,
+    private readonly outbox: OutboxService,
     private readonly audit: AuditService,
     private readonly limits: RateLimitService,
   ) {}
@@ -74,7 +78,7 @@ export class AuthService {
     const existing = await this.users.findByEmail(email);
 
     if (existing) {
-      await this.mail.send(
+      await this.outbox.enqueueEmail(
         accountExistsMessage(
           email,
           this.mail.link('/login'),
@@ -84,7 +88,7 @@ export class AuthService {
       return;
     }
 
-    const { user, token } = await this.prisma.$transaction(async (tx) => {
+    await this.prisma.$transaction(async (tx) => {
       const user = await this.users.create(
         { email, fullName: input.fullName, passwordHash },
         tx,
@@ -104,15 +108,15 @@ export class AuthService {
         },
         tx,
       );
-      return { user, token };
+      await this.outbox.enqueueEmail(
+        verifyEmailMessage(
+          user.email,
+          user.fullName,
+          this.mail.link('/verify-email', token),
+        ),
+        { db: tx },
+      );
     });
-    await this.mail.send(
-      verifyEmailMessage(
-        user.email,
-        user.fullName,
-        this.mail.link('/verify-email', token),
-      ),
-    );
   }
 
   async verifyEmail(rawToken: string, client: ClientInfo): Promise<void> {
@@ -150,7 +154,7 @@ export class AuthService {
       user.id,
       AuthTokenPurpose.EMAIL_VERIFY,
     );
-    await this.mail.send(
+    await this.outbox.enqueueEmail(
       verifyEmailMessage(
         user.email,
         user.fullName,
@@ -249,7 +253,7 @@ export class AuthService {
       entityId: user.id,
       client,
     });
-    await this.mail.send(
+    await this.outbox.enqueueEmail(
       passwordResetMessage(
         user.email,
         this.mail.link('/reset-password', token),
@@ -295,18 +299,25 @@ export class AuthService {
     });
     if (!user) throw invalidToken();
     await this.limits.reset(`login-failures:${user.email}`);
-    await this.mail.send(passwordChangedMessage(user.email));
+    await this.outbox.enqueueEmail(passwordChangedMessage(user.email));
   }
 
   async sessionInfo(auth: AuthContext): Promise<SessionInfo> {
     const memberships = await this.memberships.listForUser(auth.userId);
-    const activeShopId = memberships.some((m) => m.shopId === auth.activeShopId)
-      ? auth.activeShopId
-      : null;
+    const active = memberships.find((m) => m.shopId === auth.activeShopId);
+    const permissions = active
+      ? await this.authorization.permissionsFor({
+          shopId: active.shopId,
+          membershipId: active.membershipId,
+          userId: auth.userId,
+          isOwner: active.isOwner,
+        })
+      : new Set<string>();
     return {
       user: { id: auth.userId, email: auth.email, fullName: auth.fullName },
-      activeShopId,
+      activeShopId: active?.shopId ?? null,
       memberships,
+      permissions: [...permissions].sort(),
     };
   }
 

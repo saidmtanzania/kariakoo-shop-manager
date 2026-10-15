@@ -50,6 +50,7 @@ services:
       MAIL_TRANSPORT: smtp
       SMTP_HOST: mailpit
       SMTP_PORT: 1025
+      SEAT_LIMIT: ${SEAT_LIMIT:-}
     ports:
       - '4000:4000'
     depends_on:

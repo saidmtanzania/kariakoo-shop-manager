@@ -23,6 +23,8 @@ export async function createTestApp(
     LOG_LEVEL: 'silent',
     SWAGGER_ENABLED: 'false',
     MAIL_TRANSPORT: 'memory',
+    // Tests deliver queued email explicitly with drainOutbox().
+    OUTBOX_WORKER: 'off',
     ...env,
   });
   const moduleRef = await Test.createTestingModule({
@@ -30,6 +32,8 @@ export async function createTestApp(
   }).compile();
   const app = moduleRef.createNestApplication({ logger: false });
   configureApp(app);
-  await app.init();
+  // Listening once lets supertest reuse the server; otherwise each request
+  // opens and closes its own, and overlapping requests break.
+  await app.listen(0, '127.0.0.1');
   return app;
 }

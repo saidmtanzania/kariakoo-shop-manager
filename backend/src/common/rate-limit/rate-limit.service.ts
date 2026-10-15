@@ -1,4 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger, type OnModuleInit } from '@nestjs/common';
+import { APP_CONFIG } from '../../config/config.module.js';
+import type { AppConfig } from '../../config/env.schema.js';
 import { PrismaService } from '../../database/index.js';
 
 export interface RateLimitResult {
@@ -12,15 +14,27 @@ export interface RateLimitResult {
  * instances without Redis (decision A-007).
  */
 @Injectable()
-export class RateLimitService {
-  constructor(private readonly prisma: PrismaService) {}
+export class RateLimitService implements OnModuleInit {
+  constructor(
+    private readonly prisma: PrismaService,
+    @Inject(APP_CONFIG) private readonly config: AppConfig,
+  ) {}
+
+  onModuleInit(): void {
+    if (this.config.RATE_LIMIT_MULTIPLIER > 1) {
+      new Logger(RateLimitService.name).warn(
+        `Rate limits are multiplied by ${this.config.RATE_LIMIT_MULTIPLIER} (RATE_LIMIT_MULTIPLIER); use this only for automated tests.`,
+      );
+    }
+  }
 
   /** Records one hit and reports whether it is within the limit. */
   async hit(
     key: string,
-    limit: number,
+    baseLimit: number,
     windowSeconds: number,
   ): Promise<RateLimitResult> {
+    const limit = baseLimit * this.config.RATE_LIMIT_MULTIPLIER;
     const rows = await this.prisma.$queryRaw<
       { hits: number; expires_at: Date }[]
     >`

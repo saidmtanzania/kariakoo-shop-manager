@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
+import { AuthorizationModule } from '../authorization/authorization.module.js';
 import { MembershipsModule } from '../memberships/memberships.module.js';
 import { UsersModule } from '../users/users.module.js';
 import { AuthController } from './controllers/auth.controller.js';
@@ -9,7 +10,7 @@ import { AuthService } from './services/auth.service.js';
 import { SessionService } from './services/session.service.js';
 
 @Module({
-  imports: [UsersModule, MembershipsModule],
+  imports: [UsersModule, MembershipsModule, AuthorizationModule],
   controllers: [AuthController],
   providers: [
     AuthService,

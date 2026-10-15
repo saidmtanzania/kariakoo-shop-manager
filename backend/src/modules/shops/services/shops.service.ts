@@ -13,6 +13,7 @@ import {
   type Shop,
 } from '../../../database/index.js';
 import { AuditService } from '../../audit/services/audit.service.js';
+import { RolesService } from '../../authorization/services/roles.service.js';
 import { SessionService } from '../../auth/services/session.service.js';
 import type { CreateShopDto, UpdateShopDto } from '../dto/shop.dto.js';
 
@@ -44,6 +45,7 @@ export class ShopsService {
     private readonly prisma: PrismaService,
     private readonly sessions: SessionService,
     private readonly audit: AuditService,
+    private readonly roles: RolesService,
   ) {}
 
   /**
@@ -69,6 +71,7 @@ export class ShopsService {
       const membership = await tx.shopMembership.create({
         data: { id: newId(), shopId, userId: auth.userId, isOwner: true },
       });
+      await this.roles.createDefaults(shopId, tx);
       await this.sessions.setActiveShop(auth.sessionId, shopId, tx);
       await this.audit.record(
         {

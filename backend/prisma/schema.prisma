@@ -120,6 +120,8 @@ model Shop {
   memberships ShopMembership[]
   sessions    Session[]
   auditLogs   AuditLog[]
+  roles       Role[]
+  invitations Invitation[]
 
   @@map("shops")
 }
@@ -139,14 +141,136 @@ model ShopMembership {
   joinedAt  DateTime         @default(now()) @map("joined_at") @db.Timestamptz(3)
   updatedAt DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  shop Shop @relation(fields: [shopId], references: [id], onDelete: Restrict)
-  user User @relation(fields: [userId], references: [id], onDelete: Restrict)
+  shop               Shop             @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  user               User             @relation(fields: [userId], references: [id], onDelete: Restrict)
+  roles              MembershipRole[]
+  invitationsCreated Invitation[]
 
   @@unique([shopId, userId])
   // Target for composite foreign keys (shop_id, membership_id) in later phases.
   @@unique([shopId, id])
   @@index([userId])
   @@map("shop_memberships")
+}
+
+// ---------------------------------------------------------------------------
+// Authorization and invitations (Phase 03). data-model.md section 3.
+// ---------------------------------------------------------------------------
+
+enum PermissionScope {
+  SHOP
+  PLATFORM
+}
+
+/// The permission catalog, seeded by migration from packages/shared
+/// (permissions.ts). Read-only to shops.
+model Permission {
+  code      String          @id @db.VarChar(64)
+  module    String          @db.VarChar(32)
+  scope     PermissionScope
+  /// Only delegable SHOP permissions may be put in a shop's roles.
+  delegable Boolean
+
+  roles RolePermission[]
+
+  @@map("permissions")
+}
+
+/// A shop's custom role. Owners hold every shop permission through
+/// shop_memberships.is_owner, not through a role (decision A-016).
+model Role {
+  id          String   @id @db.Uuid
+  shopId      String   @map("shop_id") @db.Uuid
+  name        String   @db.Citext
+  /// Set on the default roles a new shop starts with (manager, cashier...).
+  templateKey String?  @map("template_key") @db.VarChar(32)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  shop        Shop             @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  permissions RolePermission[]
+  members     MembershipRole[]
+  invitations InvitationRole[]
+
+  @@unique([shopId, name])
+  @@unique([shopId, id])
+  @@map("roles")
+}
+
+model RolePermission {
+  shopId         String @map("shop_id") @db.Uuid
+  roleId         String @map("role_id") @db.Uuid
+  permissionCode String @map("permission_code") @db.VarChar(64)
+
+  role       Role       @relation(fields: [shopId, roleId], references: [shopId, id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionCode], references: [code], onDelete: Restrict)
+
+  @@id([roleId, permissionCode])
+  @@index([shopId])
+  @@map("role_permissions")
+}
+
+/// Composite keys keep a membership and its roles in the same shop.
+model MembershipRole {
+  shopId       String   @map("shop_id") @db.Uuid
+  membershipId String   @map("membership_id") @db.Uuid
+  roleId       String   @map("role_id") @db.Uuid
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  membership ShopMembership @relation(fields: [shopId, membershipId], references: [shopId, id], onDelete: Cascade)
+  role       Role           @relation(fields: [shopId, roleId], references: [shopId, id], onDelete: Restrict)
+
+  @@id([membershipId, roleId])
+  @@index([shopId, roleId])
+  @@map("membership_roles")
+}
+
+enum InvitationStatus {
+  PENDING
+  ACCEPTED
+  EXPIRED
+  REVOKED
+}
+
+/// Staff invitation by email. The token is stored only as a SHA-256 hash.
+/// At most one PENDING invitation per shop and email (enforced by the
+/// service under a shop row lock).
+model Invitation {
+  id                    String           @id @db.Uuid
+  shopId                String           @map("shop_id") @db.Uuid
+  email                 String           @db.Citext
+  tokenHash             String           @unique @map("token_hash") @db.Char(64)
+  status                InvitationStatus @default(PENDING)
+  invitedByMembershipId String?          @map("invited_by_membership_id") @db.Uuid
+  expiresAt             DateTime         @map("expires_at") @db.Timestamptz(3)
+  acceptedAt            DateTime?        @map("accepted_at") @db.Timestamptz(3)
+  acceptedUserId        String?          @map("accepted_user_id") @db.Uuid
+  revokedAt             DateTime?        @map("revoked_at") @db.Timestamptz(3)
+  resendCount           Int              @default(0) @map("resend_count")
+  createdAt             DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  shop      Shop             @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  invitedBy ShopMembership?  @relation(fields: [invitedByMembershipId], references: [id], onDelete: Restrict)
+  roles     InvitationRole[]
+
+  @@unique([shopId, id])
+  @@index([shopId, status])
+  @@index([shopId, email])
+  @@map("invitations")
+}
+
+model InvitationRole {
+  shopId       String @map("shop_id") @db.Uuid
+  invitationId String @map("invitation_id") @db.Uuid
+  roleId       String @map("role_id") @db.Uuid
+
+  invitation Invitation @relation(fields: [shopId, invitationId], references: [shopId, id], onDelete: Cascade)
+  role       Role       @relation(fields: [shopId, roleId], references: [shopId, id], onDelete: Cascade)
+
+  @@id([invitationId, roleId])
+  @@index([shopId, roleId])
+  @@map("invitation_roles")
 }
 
 // ---------------------------------------------------------------------------
@@ -185,4 +309,31 @@ model RateLimitCounter {
 
   @@index([expiresAt])
   @@map("rate_limit_counters")
+}
+
+enum OutboxStatus {
+  PENDING
+  PROCESSING
+  DONE
+  FAILED
+}
+
+/// Side effects (email) written in the same transaction as the change that
+/// caused them and delivered by the outbox worker (decision A-007).
+model OutboxMessage {
+  id          String       @id @db.Uuid
+  shopId      String?      @map("shop_id") @db.Uuid
+  type        String       @db.VarChar(64)
+  /// Cleared down to non-secret fields once delivered or failed.
+  payload     Json
+  status      OutboxStatus @default(PENDING)
+  attempts    Int          @default(0)
+  availableAt DateTime     @default(now()) @map("available_at") @db.Timestamptz(3)
+  lockedUntil DateTime?    @map("locked_until") @db.Timestamptz(3)
+  lastError   String?      @map("last_error") @db.VarChar(1000)
+  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  processedAt DateTime?    @map("processed_at") @db.Timestamptz(3)
+
+  @@index([status, availableAt])
+  @@map("outbox_messages")
 }

@@ -43,7 +43,27 @@
     "rate_limited": "Majaribio mengi mno. Subiri dakika chache kisha ujaribu tena.",
     "invalid_or_expired_token": "Kiungo hiki si sahihi au kimeisha muda. Omba kipya.",
     "network": "Imeshindwa kufikia seva. Angalia mtandao kisha ujaribu tena.",
-    "generic": "Kuna tatizo limetokea. Tafadhali jaribu tena."
+    "generic": "Kuna tatizo limetokea. Tafadhali jaribu tena.",
+    "permission_denied": "Huna ruhusa ya kufanya hili.",
+    "permission_escalation": "Unaweza kutoa ruhusa ulizo nazo tu.",
+    "owner_protected": "Mmiliki pekee ndiye anaweza kubadilisha mmiliki mwingine.",
+    "owner_required": "Mmiliki wa duka pekee ndiye anaweza kufanya hili.",
+    "last_owner": "Duka linahitaji angalau mmiliki mmoja aliye hai.",
+    "role_name_taken": "Jukumu lenye jina hili tayari lipo.",
+    "role_in_use": "Jukumu hili bado limepewa wafanyakazi au liko kwenye mwaliko. Wabadilishe kwanza.",
+    "role_not_found": "Jukumu hilo halipo tena. Onyesha upya ujaribu tena.",
+    "member_not_found": "Mtu huyo hayupo tena kwenye timu. Onyesha upya ujaribu tena.",
+    "already_member": "Mtu huyu tayari ni mwanachama wa duka.",
+    "invitation_pending": "Barua pepe hii tayari ina mwaliko unaosubiri. Utume upya badala yake.",
+    "invitation_not_found": "Kiungo hiki cha mwaliko si sahihi.",
+    "invitation_expired": "Mwaliko huu umeisha muda. Omba duka likutumie mwingine.",
+    "invitation_revoked": "Mwaliko huu ulighairiwa.",
+    "invitation_used": "Mwaliko huu tayari umetumika.",
+    "invitation_email_mismatch": "Mwaliko huu ulitumwa kwa barua pepe nyingine. Ingia kwa barua pepe hiyo ili kuukubali.",
+    "invitation_not_pending": "Mwaliko huu hausubiri tena.",
+    "resend_limit": "Mwaliko huu umetumwa mara nyingi mno. Ughairi na ualike upya.",
+    "seat_limit_reached": "Duka limefikia kikomo cha wafanyakazi.",
+    "shop_suspended": "Duka hili limesimamishwa."
   },
   "Login": {
     "title": "Ingia",
@@ -114,6 +134,173 @@
     "timezone": "Saa za eneo",
     "phone": "Simu",
     "address": "Mahali",
-    "type": "Biashara"
+    "type": "Biashara",
+    "team": "Wafanyakazi",
+    "pendingInvitation": "Una mwaliko unaosubiri.",
+    "openInvitation": "Fungua mwaliko"
+  },
+  "Team": {
+    "title": "Wafanyakazi",
+    "back": "Rudi dukani",
+    "noAccess": "Huna ruhusa ya kuona wafanyakazi.",
+    "members": "Wanachama",
+    "invitations": "Mialiko",
+    "roles": "Majukumu",
+    "you": "wewe",
+    "owner": "Mmiliki",
+    "noRoles": "Hana jukumu",
+    "status": {
+      "ACTIVE": "Hai",
+      "SUSPENDED": "Amesimamishwa",
+      "REMOVED": "Ameondolewa"
+    },
+    "editRoles": "Badilisha majukumu",
+    "saveRoles": "Hifadhi majukumu",
+    "cancel": "Ghairi",
+    "suspend": "Simamisha",
+    "reactivate": "Rejesha",
+    "remove": "Ondoa",
+    "confirmRemove": "Ndiyo, mwondoe {name}",
+    "makeOwner": "Mfanye mmiliki",
+    "removeOwner": "Ondoa umiliki",
+    "inviteTitle": "Alika mfanyakazi",
+    "inviteHint": "Atapokea barua pepe yenye kiungo kinachofanya kazi mara moja na kuisha baada ya siku 7.",
+    "inviteRoles": "Majukumu ya mtu huyu",
+    "sendInvite": "Tuma mwaliko",
+    "inviteSent": "Mwaliko umetumwa kwa {email}.",
+    "noInvitations": "Bado hakuna mialiko.",
+    "invitationStatus": {
+      "PENDING": "Unasubiri",
+      "ACCEPTED": "Umekubaliwa",
+      "EXPIRED": "Umeisha muda",
+      "REVOKED": "Umeghairiwa"
+    },
+    "expires": "Unaisha {date}",
+    "resend": "Tuma tena",
+    "revoke": "Ghairi mwaliko",
+    "resent": "Kiungo kipya kimetumwa.",
+    "newRole": "Jukumu jipya",
+    "editRole": "Hariri",
+    "deleteRole": "Futa",
+    "roleName": "Jina la jukumu",
+    "rolePermissions": "Jukumu hili linaweza kufanya nini",
+    "saveRole": "Hifadhi jukumu",
+    "memberCount": "{count, plural, =0 {Hakuna wanachama} one {Mwanachama #} other {Wanachama #}}",
+    "permissionCount": "{count, plural, one {Ruhusa #} other {Ruhusa #}}",
+    "selectRole": "Chagua angalau jukumu moja.",
+    "roleNameRequired": "Andika jina lisilozidi herufi 60."
+  },
+  "AcceptInvitation": {
+    "title": "Jiunge na duka",
+    "loading": "Inakagua mwaliko…",
+    "missing": "Ukurasa huu unahitaji kiungo kutoka kwenye barua pepe ya mwaliko.",
+    "invited": "{inviter} amekualika ujiunge na {shop}.",
+    "invitedNoName": "Umealikwa kujiunga na {shop}.",
+    "sentTo": "Umetumwa kwa {email}",
+    "signInFirst": "Ingia kwa {email} ili kukubali. Kama huna akaunti bado, fungua moja kwa barua pepe hiyo.",
+    "signIn": "Ingia",
+    "register": "Fungua akaunti",
+    "accept": "Kubali na ujiunge",
+    "wrongAccount": "Umeingia kama {email}. Toka na uingie kwa barua pepe iliyoalikwa.",
+    "signOut": "Toka"
+  },
+  "PermissionModules": {
+    "dashboard": "Dashibodi",
+    "sales": "Mauzo",
+    "products": "Bidhaa",
+    "inventory": "Stoo",
+    "purchases": "Manunuzi na wasambazaji",
+    "customers": "Wateja",
+    "expenses": "Matumizi",
+    "cash": "Droo ya fedha",
+    "reports": "Ripoti",
+    "team": "Wafanyakazi",
+    "settings": "Mipangilio"
+  },
+  "Permissions": {
+    "dashboard": {
+      "read": "Kuona dashibodi"
+    },
+    "products": {
+      "read": "Kuona bidhaa",
+      "create": "Kuongeza bidhaa",
+      "update": "Kuhariri bidhaa",
+      "archive": "Kuhifadhi bidhaa zisizotumika",
+      "prices": {
+        "update": "Kubadilisha bei"
+      }
+    },
+    "inventory": {
+      "read": "Kuona stoo",
+      "adjust": "Kurekebisha stoo",
+      "opening": "Kuingiza stoo ya mwanzo"
+    },
+    "suppliers": {
+      "read": "Kuona wasambazaji",
+      "manage": "Kusimamia wasambazaji"
+    },
+    "purchases": {
+      "read": "Kuona manunuzi",
+      "create": "Kuunda manunuzi",
+      "receive": "Kupokea mzigo",
+      "cancel": "Kughairi manunuzi"
+    },
+    "supplier_payments": {
+      "create": "Kulipa wasambazaji"
+    },
+    "sales": {
+      "read": "Kuona mauzo yake",
+      "read_all": "Kuona mauzo yote",
+      "create": "Kuuza",
+      "discount": "Kutoa punguzo",
+      "credit": "Kuuza kwa mkopo",
+      "refund": "Kurudisha pesa za mauzo",
+      "void": "Kufuta mauzo"
+    },
+    "customers": {
+      "read": "Kuona wateja",
+      "manage": "Kusimamia wateja",
+      "credit": {
+        "manage": "Kusimamia kikomo cha mkopo cha wateja"
+      }
+    },
+    "expenses": {
+      "read": "Kuona matumizi",
+      "create": "Kuandika matumizi",
+      "void": "Kufuta matumizi"
+    },
+    "cash_sessions": {
+      "open": "Kufungua droo ya fedha",
+      "close": "Kufunga droo ya fedha",
+      "review": "Kukagua hesabu za fedha"
+    },
+    "reports": {
+      "read": "Kuona ripoti",
+      "profit": {
+        "read": "Kuona faida"
+      },
+      "export": "Kupakua ripoti"
+    },
+    "users": {
+      "read": "Kuona wafanyakazi",
+      "invite": "Kualika wafanyakazi",
+      "manage": "Kusimamia wafanyakazi"
+    },
+    "roles": {
+      "manage": "Kusimamia majukumu"
+    },
+    "audit": {
+      "read": "Kuona kumbukumbu za shughuli"
+    },
+    "subscription": {
+      "read": "Kuona usajili",
+      "manage": "Kusimamia usajili"
+    },
+    "settings": {
+      "manage": "Kubadilisha mipangilio ya duka"
+    },
+    "devices": {
+      "manage": "Kusimamia vifaa"
+    }
   }
 }

@@ -13,7 +13,7 @@ import { Field } from '@/components/forms/field';
 import { Alert } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
 import { apiFetch } from '@/lib/api';
-import { errorKey, SESSION_KEY } from '@/lib/session';
+import { errorKey, safeNext, SESSION_KEY } from '@/lib/session';
 
 export default function LoginPage() {
   const t = useTranslations();
@@ -31,7 +31,10 @@ export default function LoginPage() {
     try {
       await apiFetch('/auth/login', { method: 'POST', body: values });
       await queryClient.invalidateQueries({ queryKey: SESSION_KEY });
-      router.replace('/');
+      // Return to where sign-in was asked for, such as an invitation.
+      router.replace(
+        safeNext(new URLSearchParams(window.location.search).get('next')),
+      );
     } catch (err) {
       setError(errorKey(err));
     }

@@ -58,6 +58,8 @@ export default defineConfig({
         LOG_LEVEL: 'warn',
         // Requests arrive through the web app's /api proxy (one hop).
         TRUST_PROXY: '1',
+        // Every simulated person signs up from the same address.
+        RATE_LIMIT_MULTIPLIER: '10',
         // Real SMTP into Mailpit (docker compose up -d mailpit).
         MAIL_TRANSPORT: 'smtp',
         SMTP_HOST: process.env.SMTP_HOST ?? 'localhost',

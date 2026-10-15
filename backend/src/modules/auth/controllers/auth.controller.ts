@@ -12,7 +12,7 @@ import {
 import { ApiTags } from '@nestjs/swagger';
 import type { SessionInfo } from '@ksm/shared';
 import type { Response } from 'express';
-import { Public } from '../../../common/auth/access.decorators.js';
+import { Public, SignedIn } from '../../../common/auth/access.decorators.js';
 import {
   Client,
   CurrentAuth,
@@ -94,6 +94,7 @@ export class AuthController {
   }
 
   @Post('logout')
+  @SignedIn()
   @HttpCode(HttpStatus.NO_CONTENT)
   async logout(
     @CurrentAuth() auth: AuthContext,
@@ -134,11 +135,13 @@ export class AuthController {
 
   /** The signed-in user, their shops and the active shop. */
   @Get('session')
+  @SignedIn()
   session(@CurrentAuth() auth: AuthContext): Promise<SessionInfo> {
     return this.auth.sessionInfo(auth);
   }
 
   @Put('session/active-shop')
+  @SignedIn()
   @HttpCode(HttpStatus.NO_CONTENT)
   async switchShop(
     @CurrentAuth() auth: AuthContext,

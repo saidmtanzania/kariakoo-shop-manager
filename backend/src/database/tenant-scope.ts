@@ -12,6 +12,15 @@ export const TENANT_MODELS = {
   Shop: 'id',
   ShopMembership: 'shopId',
   AuditLog: 'shopId',
+  Role: 'shopId',
+  RolePermission: 'shopId',
+  MembershipRole: 'shopId',
+  Invitation: 'shopId',
+  InvitationRole: 'shopId',
+  // Shop work queues its email in the shop's transaction; messages that
+  // belong to no shop (sign-up, password reset) are written unscoped with a
+  // null shop id.
+  OutboxMessage: 'shopId',
 } as const satisfies Partial<Record<Prisma.ModelName, string>>;
 
 /** Models that are not owned by a shop (global identity and infrastructure). */
@@ -20,6 +29,7 @@ export const GLOBAL_MODELS = [
   'Session',
   'AuthToken',
   'RateLimitCounter',
+  'Permission',
 ] as const satisfies readonly Prisma.ModelName[];
 
 type TenantModel = keyof typeof TENANT_MODELS;

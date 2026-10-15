@@ -1,7 +1,13 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { newId } from '../../../common/ids/ids.js';
 import type { ClientInfo } from '../../../common/auth/request-context.js';
-import { Prisma, PrismaService } from '../../../database/index.js';
+import type { AuditEntryView } from '@ksm/shared';
+import type { ShopContext } from '../../../common/auth/request-context.js';
+import {
+  Prisma,
+  PrismaService,
+  scopedToShop,
+} from '../../../database/index.js';
 
 export type AuditAction =
   | 'auth.registered'
@@ -13,7 +19,19 @@ export type AuditAction =
   | 'auth.password_reset'
   | 'session.shop_switched'
   | 'shop.created'
-  | 'shop.updated';
+  | 'shop.updated'
+  | 'role.created'
+  | 'role.updated'
+  | 'role.deleted'
+  | 'member.roles_changed'
+  | 'member.suspended'
+  | 'member.reactivated'
+  | 'member.removed'
+  | 'member.ownership_changed'
+  | 'invitation.created'
+  | 'invitation.resent'
+  | 'invitation.revoked'
+  | 'invitation.accepted';
 
 export interface AuditEntry {
   action: AuditAction;
@@ -73,5 +91,45 @@ export class AuditService {
         'Failed to write audit log',
       ),
     );
+  }
+
+  /**
+   * The active shop's audit trail, newest first. Ids are UUID v7, so they
+   * sort by time and serve as the page cursor (decision A-004).
+   */
+  async listForShop(
+    ctx: ShopContext,
+    query: { cursor?: string; limit?: number },
+  ): Promise<{ entries: AuditEntryView[]; nextCursor: string | null }> {
+    const limit = query.limit ?? 50;
+    const rows = await scopedToShop(this.prisma, ctx.shopId).auditLog.findMany({
+      where: query.cursor ? { id: { lt: query.cursor } } : {},
+      orderBy: { id: 'desc' },
+      take: limit + 1,
+    });
+    const page = rows.slice(0, limit);
+    const actorIds = [
+      ...new Set(
+        page
+          .map((r) => r.actorUserId)
+          .filter((id): id is string => id !== null),
+      ),
+    ];
+    const actors = await this.prisma.user.findMany({
+      where: { id: { in: actorIds } },
+      select: { id: true, fullName: true },
+    });
+    const names = new Map(actors.map((a) => [a.id, a.fullName]));
+    return {
+      entries: page.map((r) => ({
+        id: r.id,
+        action: r.action,
+        actorName: r.actorUserId ? (names.get(r.actorUserId) ?? null) : null,
+        entityType: r.entityType,
+        entityId: r.entityId,
+        createdAt: r.createdAt.toISOString(),
+      })),
+      nextCursor: rows.length > limit ? page.at(-1)!.id : null,
+    };
   }
 }

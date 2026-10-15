@@ -51,6 +51,12 @@ export const envSchema = z.object({
    */
   TRUST_PROXY: z.coerce.number().int().min(0).max(5).default(0),
 
+  /**
+   * Multiplies every rate limit. Only for automated browser tests, where
+   * every simulated user shares one address; leave at 1 everywhere else.
+   */
+  RATE_LIMIT_MULTIPLIER: z.coerce.number().int().min(1).max(100).default(1),
+
   // ---- Email ----
   /** smtp sends real mail; memory keeps it in-process (tests); log writes it to the log. */
   MAIL_TRANSPORT: z.enum(['smtp', 'memory', 'log']).default('smtp'),
@@ -63,6 +69,21 @@ export const envSchema = z.object({
   SMTP_SECURE: booleanString.default(false),
   SMTP_USER: z.string().optional(),
   SMTP_PASSWORD: z.string().optional(),
+
+  // ---- Outbox worker (decision A-007) ----
+  /** Run the in-process outbox worker. Tests turn it off and drain explicitly. */
+  OUTBOX_WORKER: z.enum(['on', 'off']).default('on'),
+  OUTBOX_POLL_MS: z.coerce.number().int().min(100).max(60_000).default(1000),
+
+  // ---- Staff ----
+  /**
+   * Maximum members plus pending invitations per shop, until plans define
+   * seat limits in Phase 04 (decision D-005). Unset means no limit.
+   */
+  SEAT_LIMIT: z.preprocess(
+    (value) => (value === '' ? undefined : value),
+    z.coerce.number().int().min(1).max(10_000).optional(),
+  ),
 });
 
 type RawConfig = z.infer<typeof envSchema>;

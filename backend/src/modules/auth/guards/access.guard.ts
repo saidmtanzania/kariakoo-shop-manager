@@ -11,10 +11,12 @@ import type { Response } from 'express';
 import {
   ACCESS_LEVEL_KEY,
   OWNER_ONLY_KEY,
+  PERMISSION_KEY,
   SKIP_CSRF_KEY,
   type AccessLevel,
 } from '../../../common/auth/access.decorators.js';
 import type { AppRequest } from '../../../common/auth/request-context.js';
+import { AuthorizationService } from '../../authorization/services/authorization.service.js';
 import { MembershipsService } from '../../memberships/services/memberships.service.js';
 import { SessionService } from '../services/session.service.js';
 
@@ -26,11 +28,14 @@ const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
  *   1. CSRF: state-changing requests must carry X-Requested-With, which a
  *      cross-site form cannot send and a cross-origin script cannot send
  *      without passing CORS.
- *   2. Session: deny by default; only @Public() routes skip it.
- *   3. Shop context: @ShopScoped() routes get the active shop from the
- *      server-side session and re-validate the membership on every request.
- *      Nothing the client sends can choose the shop.
- *   4. Owner-only (temporary until Phase 03 permissions).
+ *   2. Declared access: a route without @Public(), @SignedIn(),
+ *      @ShopScoped(), @RequirePermission() or @OwnerOnly() is refused.
+ *   3. Session: every route except @Public() needs one.
+ *   4. Shop context: shop routes get the active shop from the server-side
+ *      session and re-validate the membership on every request. Nothing the
+ *      client sends can choose the shop.
+ *   5. Permission: loaded from the database on every request, so role and
+ *      membership changes apply immediately. Owners hold all permissions.
  */
 @Injectable()
 export class AccessGuard implements CanActivate {
@@ -38,6 +43,7 @@ export class AccessGuard implements CanActivate {
     private readonly reflector: Reflector,
     private readonly sessions: SessionService,
     private readonly memberships: MembershipsService,
+    private readonly authorization: AuthorizationService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -60,11 +66,17 @@ export class AccessGuard implements CanActivate {
       });
     }
 
-    const level =
-      this.reflector.getAllAndOverride<AccessLevel>(
-        ACCESS_LEVEL_KEY,
-        targets,
-      ) ?? 'user';
+    const level = this.reflector.getAllAndOverride<AccessLevel | undefined>(
+      ACCESS_LEVEL_KEY,
+      targets,
+    );
+    if (!level) {
+      // Fail closed; the route-inventory test catches this before release.
+      throw new ForbiddenException({
+        message: 'This route does not declare who may use it.',
+        code: 'access_undeclared',
+      });
+    }
     if (level === 'public') return true;
 
     const cookies = req.cookies as Record<string, string> | undefined;
@@ -106,15 +118,27 @@ export class AccessGuard implements CanActivate {
             : 'shop_access_revoked',
       });
     }
-    req.shopContext = check.context;
+    const permissions = await this.authorization.permissionsFor(check.context);
+    req.shopContext = { ...check.context, permissions };
+
+    const required = this.reflector.getAllAndOverride<string | undefined>(
+      PERMISSION_KEY,
+      targets,
+    );
+    if (required && !permissions.has(required)) {
+      throw new ForbiddenException({
+        message: 'You do not have permission to do this.',
+        code: 'permission_denied',
+      });
+    }
 
     const ownerOnly =
       this.reflector.getAllAndOverride<boolean>(OWNER_ONLY_KEY, targets) ??
       false;
     if (ownerOnly && !check.context.isOwner) {
       throw new ForbiddenException({
-        message: 'Only the shop owner can do this.',
-        code: 'forbidden',
+        message: 'Only a shop owner can do this.',
+        code: 'owner_required',
       });
     }
     return true;
