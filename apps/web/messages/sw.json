@@ -5,12 +5,115 @@
   },
   "SystemStatus": {
     "title": "Hali ya mfumo",
-    "description": "Programu inaandaliwa. Huduma za duka zitakuja katika matoleo yajayo.",
+    "description": "Kama seva na hifadhidata zinapatikana.",
     "api": "Seva",
     "database": "Hifadhidata",
     "checking": "Inakagua…",
     "connected": "Imeunganishwa",
     "disconnected": "Haipatikani",
     "retry": "Kagua tena"
+  },
+  "Fields": {
+    "fullName": "Jina kamili",
+    "email": "Barua pepe",
+    "password": "Nenosiri",
+    "newPassword": "Nenosiri jipya",
+    "shopName": "Jina la duka",
+    "phone": "Simu (si lazima)",
+    "address": "Mahali Kariakoo (si lazima)",
+    "businessType": "Aina ya biashara"
+  },
+  "BusinessTypes": {
+    "WHOLESALE": "Jumla",
+    "RETAIL": "Rejareja",
+    "BOTH": "Jumla na rejareja"
+  },
+  "Validation": {
+    "fullName": "Andika jina lako.",
+    "email": "Andika barua pepe sahihi.",
+    "password": "Tumia herufi 8 hadi 128.",
+    "passwordRequired": "Andika nenosiri lako.",
+    "shopName": "Andika jina la duka.",
+    "phone": "Tumia herufi zisizozidi 32.",
+    "address": "Tumia herufi zisizozidi 255."
+  },
+  "Errors": {
+    "invalid_credentials": "Barua pepe au nenosiri si sahihi.",
+    "email_not_verified": "Thibitisha barua pepe yako kabla ya kuingia. Angalia sanduku la barua au omba kiungo kipya.",
+    "rate_limited": "Majaribio mengi mno. Subiri dakika chache kisha ujaribu tena.",
+    "invalid_or_expired_token": "Kiungo hiki si sahihi au kimeisha muda. Omba kipya.",
+    "network": "Imeshindwa kufikia seva. Angalia mtandao kisha ujaribu tena.",
+    "generic": "Kuna tatizo limetokea. Tafadhali jaribu tena."
+  },
+  "Login": {
+    "title": "Ingia",
+    "description": "Karibu tena. Ingia kwenye duka lako.",
+    "submit": "Ingia",
+    "forgot": "Umesahau nenosiri?",
+    "noAccount": "Mgeni hapa?",
+    "register": "Fungua akaunti",
+    "resend": "Tuma kiungo kipya cha uthibitisho"
+  },
+  "Register": {
+    "title": "Fungua akaunti",
+    "description": "Utaweza kufungua au kujiunga na duka baada ya kuthibitisha barua pepe.",
+    "submit": "Fungua akaunti",
+    "hasAccount": "Una akaunti tayari?",
+    "login": "Ingia",
+    "sentTitle": "Angalia barua pepe yako",
+    "sent": "Kama taarifa ni sahihi, tumetuma kiungo kwa {email}. Kifungue kuthibitisha anwani yako, kisha uingie."
+  },
+  "VerifyEmail": {
+    "title": "Thibitisha barua pepe",
+    "verifying": "Tunathibitisha barua pepe yako…",
+    "done": "Barua pepe yako imethibitishwa. Sasa unaweza kuingia.",
+    "login": "Nenda kuingia",
+    "missing": "Kiungo hiki hakijakamilika. Fungua tena kiungo kutoka kwenye barua pepe, au omba kipya.",
+    "resendTitle": "Tuma kiungo kipya",
+    "resend": "Tuma kiungo",
+    "resent": "Kama anwani hiyo ina akaunti isiyothibitishwa, tumetuma kiungo kipya."
+  },
+  "ForgotPassword": {
+    "title": "Badilisha nenosiri",
+    "description": "Andika barua pepe yako tukutumie kiungo cha kubadilisha nenosiri.",
+    "submit": "Tuma kiungo",
+    "sent": "Kama kuna akaunti ya {email}, tumetuma kiungo cha kubadilisha nenosiri. Kiungo kinaisha baada ya dakika 30.",
+    "back": "Rudi kuingia"
+  },
+  "ResetPassword": {
+    "title": "Chagua nenosiri jipya",
+    "description": "Hii itakutoa kwenye vifaa vyote.",
+    "submit": "Hifadhi nenosiri jipya",
+    "done": "Nenosiri lako limebadilishwa. Ingia kwa nenosiri jipya.",
+    "login": "Nenda kuingia",
+    "missing": "Kiungo hiki hakijakamilika. Omba kiungo kipya.",
+    "requestNew": "Omba kiungo kipya"
+  },
+  "NewShop": {
+    "title": "Fungua duka",
+    "description": "Utakuwa mmiliki. Unaweza kuongeza wafanyakazi baadaye.",
+    "submit": "Fungua duka",
+    "cancel": "Ghairi"
+  },
+  "Home": {
+    "loading": "Inapakia…",
+    "signedInAs": "Umeingia kama {name}",
+    "logout": "Toka",
+    "noShopsTitle": "Fungua duka lako la kwanza",
+    "noShops": "Bado wewe si mwanachama wa duka lolote. Fungua duka kuanza, au mwombe mmiliki wa duka akuongeze.",
+    "createShop": "Fungua duka",
+    "chooseTitle": "Chagua duka",
+    "choose": "Fungua",
+    "activeShop": "Duka la sasa",
+    "switchShop": "Badilisha duka",
+    "owner": "Mmiliki",
+    "staff": "Mfanyakazi",
+    "comingSoon": "Huduma za mauzo, bidhaa na madeni zinakuja katika matoleo yajayo.",
+    "newShop": "Duka jipya",
+    "currency": "Sarafu",
+    "timezone": "Saa za eneo",
+    "phone": "Simu",
+    "address": "Mahali",
+    "type": "Biashara"
   }
 }

@@ -49,6 +49,31 @@ describe('validateEnv', () => {
     );
   });
 
+  it('derives APP_URL and COOKIE_SECURE', () => {
+    expect(validateEnv(valid)).toMatchObject({
+      APP_URL: 'http://localhost:3000',
+      COOKIE_SECURE: false,
+      SESSION_IDLE_HOURS: 12,
+      SESSION_ABSOLUTE_DAYS: 7,
+    });
+    expect(
+      validateEnv({ ...valid, NODE_ENV: 'production' }).COOKIE_SECURE,
+    ).toBe(true);
+    expect(
+      validateEnv({ ...valid, APP_URL: 'https://app.example.co.tz/' }).APP_URL,
+    ).toBe('https://app.example.co.tz');
+  });
+
+  it('refuses the in-memory mail transport in production', () => {
+    expect(() =>
+      validateEnv({
+        ...valid,
+        NODE_ENV: 'production',
+        MAIL_TRANSPORT: 'memory',
+      }),
+    ).toThrow(/MAIL_TRANSPORT/);
+  });
+
   it('rejects an invalid port and log level', () => {
     expect(() => validateEnv({ ...valid, PORT: '70000' })).toThrow(/PORT/);
     expect(() => validateEnv({ ...valid, LOG_LEVEL: 'verbose' })).toThrow(

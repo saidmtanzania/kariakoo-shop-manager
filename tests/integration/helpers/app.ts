@@ -22,6 +22,7 @@ export async function createTestApp(
     WEB_ORIGIN: 'http://localhost:3000',
     LOG_LEVEL: 'silent',
     SWAGGER_ENABLED: 'false',
+    MAIL_TRANSPORT: 'memory',
     ...env,
   });
   const moduleRef = await Test.createTestingModule({

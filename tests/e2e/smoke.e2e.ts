@@ -1,9 +1,9 @@
 import { expect, test } from '@playwright/test';
 
-test('home page shows the app name and a connected API and database', async ({
+test('status page shows the app name and a connected API and database', async ({
   page,
 }) => {
-  await page.goto('/');
+  await page.goto('/status');
 
   await expect(
     page.getByRole('heading', { name: 'Kariakoo Shop Manager' }),
@@ -16,6 +16,12 @@ test('home page shows the app name and a connected API and database', async ({
     'data-state',
     'connected',
   );
+});
+
+test('signed-out visitors are sent to sign in', async ({ page }) => {
+  await page.goto('/');
+  await expect(page).toHaveURL(/\/login$/);
+  await expect(page.getByRole('heading', { name: 'Sign in' })).toBeVisible();
 });
 
 test('API requests go through the web origin so cookies stay first-party', async ({
