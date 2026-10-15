@@ -44,11 +44,19 @@ services:
       WEB_ORIGIN: ${WEB_ORIGIN:-http://localhost:3000}
       LOG_LEVEL: ${LOG_LEVEL:-info}
       SWAGGER_ENABLED: ${SWAGGER_ENABLED:-true}
+      # Plain http on localhost: Safari will not keep a Secure cookie there.
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      TRUST_PROXY: 1
+      MAIL_TRANSPORT: smtp
+      SMTP_HOST: mailpit
+      SMTP_PORT: 1025
     ports:
       - '4000:4000'
     depends_on:
       migrate:
         condition: service_completed_successfully
+      mailpit:
+        condition: service_started
     healthcheck:
       test:
         [
@@ -74,7 +82,7 @@ services:
         condition: service_healthy
 
   mailpit:
-    # Catches outgoing email locally (used from Phase 02). UI: http://localhost:8025
+    # Catches outgoing email locally. UI: http://localhost:8025
     image: axllent/mailpit:v1.27
     ports:
       - '1025:1025'

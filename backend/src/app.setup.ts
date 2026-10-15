@@ -8,6 +8,7 @@ import {
   SwaggerModule,
   type OpenAPIObject,
 } from '@nestjs/swagger';
+import cookieParser from 'cookie-parser';
 import { Logger } from 'nestjs-pino';
 import { APP_CONFIG } from './config/config.module.js';
 import type { AppConfig } from './config/env.schema.js';
@@ -39,8 +40,13 @@ export function configureApp(app: INestApplication): void {
 
   const http = app.getHttpAdapter().getInstance() as {
     disable?: (setting: string) => void;
+    set?: (setting: string, value: unknown) => void;
   };
   http.disable?.('x-powered-by');
+  // Number of proxy hops whose X-Forwarded-For is trusted (the web app's
+  // /api rewrite is one). Client IPs feed rate limits and audit logs.
+  http.set?.('trust proxy', config.TRUST_PROXY);
+  app.use(cookieParser());
 
   if (config.SWAGGER_ENABLED) {
     SwaggerModule.setup(`${API_PREFIX}/docs`, app, () =>
@@ -54,6 +60,8 @@ export function buildOpenApiDocument(app: INestApplication): OpenAPIObject {
     .setTitle('Kariakoo Shop Manager API')
     .setDescription('Versioned REST API. Errors use RFC 9457 problem details.')
     .setVersion('1')
+    // Sessions are an HttpOnly cookie; the name has a __Host- prefix over HTTPS.
+    .addCookieAuth('ksm_session')
     .build();
   return SwaggerModule.createDocument(app, document);
 }

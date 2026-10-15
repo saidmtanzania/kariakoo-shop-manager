@@ -5,12 +5,115 @@
   },
   "SystemStatus": {
     "title": "System status",
-    "description": "The app is being set up. Shop features arrive in later releases.",
+    "description": "Whether the server and database are reachable.",
     "api": "Server",
     "database": "Database",
     "checking": "Checking…",
     "connected": "Connected",
     "disconnected": "Not reachable",
     "retry": "Check again"
+  },
+  "Fields": {
+    "fullName": "Full name",
+    "email": "Email",
+    "password": "Password",
+    "newPassword": "New password",
+    "shopName": "Shop name",
+    "phone": "Phone (optional)",
+    "address": "Location in Kariakoo (optional)",
+    "businessType": "Type of business"
+  },
+  "BusinessTypes": {
+    "WHOLESALE": "Wholesale",
+    "RETAIL": "Retail",
+    "BOTH": "Wholesale and retail"
+  },
+  "Validation": {
+    "fullName": "Enter your name.",
+    "email": "Enter a valid email address.",
+    "password": "Use 8 to 128 characters.",
+    "passwordRequired": "Enter your password.",
+    "shopName": "Enter the shop name.",
+    "phone": "Use at most 32 characters.",
+    "address": "Use at most 255 characters."
+  },
+  "Errors": {
+    "invalid_credentials": "Email or password is incorrect.",
+    "email_not_verified": "Confirm your email address before signing in. Check your inbox or send a new link.",
+    "rate_limited": "Too many attempts. Please wait a few minutes and try again.",
+    "invalid_or_expired_token": "This link is invalid or has expired. Request a new one.",
+    "network": "Could not reach the server. Check your connection and try again.",
+    "generic": "Something went wrong. Please try again."
+  },
+  "Login": {
+    "title": "Sign in",
+    "description": "Welcome back. Sign in to your shop.",
+    "submit": "Sign in",
+    "forgot": "Forgot password?",
+    "noAccount": "New here?",
+    "register": "Create an account",
+    "resend": "Send a new confirmation link"
+  },
+  "Register": {
+    "title": "Create your account",
+    "description": "You can create or join a shop after confirming your email.",
+    "submit": "Create account",
+    "hasAccount": "Already have an account?",
+    "login": "Sign in",
+    "sentTitle": "Check your email",
+    "sent": "If the details are valid, we have sent a link to {email}. Open it to confirm your address, then sign in."
+  },
+  "VerifyEmail": {
+    "title": "Confirm your email",
+    "verifying": "Confirming your email…",
+    "done": "Your email is confirmed. You can now sign in.",
+    "login": "Go to sign in",
+    "missing": "This link is incomplete. Open the link from your email again, or request a new one.",
+    "resendTitle": "Send a new link",
+    "resend": "Send link",
+    "resent": "If that address has an unconfirmed account, we have sent a new link."
+  },
+  "ForgotPassword": {
+    "title": "Reset your password",
+    "description": "Enter your email and we will send you a reset link.",
+    "submit": "Send reset link",
+    "sent": "If an account exists for {email}, we have sent a link to reset the password. The link expires in 30 minutes.",
+    "back": "Back to sign in"
+  },
+  "ResetPassword": {
+    "title": "Choose a new password",
+    "description": "This signs you out on every device.",
+    "submit": "Save new password",
+    "done": "Your password has been changed. Sign in with your new password.",
+    "login": "Go to sign in",
+    "missing": "This link is incomplete. Request a new reset link.",
+    "requestNew": "Request a new link"
+  },
+  "NewShop": {
+    "title": "Create a shop",
+    "description": "You will be the owner. You can add staff later.",
+    "submit": "Create shop",
+    "cancel": "Cancel"
+  },
+  "Home": {
+    "loading": "Loading…",
+    "signedInAs": "Signed in as {name}",
+    "logout": "Sign out",
+    "noShopsTitle": "Create your first shop",
+    "noShops": "You are not a member of any shop yet. Create one to get started, or ask a shop owner to add you.",
+    "createShop": "Create a shop",
+    "chooseTitle": "Choose a shop",
+    "choose": "Open",
+    "activeShop": "Current shop",
+    "switchShop": "Switch shop",
+    "owner": "Owner",
+    "staff": "Staff",
+    "comingSoon": "Sales, stock and credit features arrive in the next releases.",
+    "newShop": "New shop",
+    "currency": "Currency",
+    "timezone": "Time zone",
+    "phone": "Phone",
+    "address": "Location",
+    "type": "Business"
   }
 }

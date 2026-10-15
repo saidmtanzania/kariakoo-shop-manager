@@ -2,7 +2,7 @@
 
 A shop-management PWA for wholesalers and retailers in Kariakoo, Dar es Salaam: sales, stock, purchases, customer credit, cashier closing, staff permissions and subscriptions.
 
-> **Status:** Phase 01 (repository and development environment). No business features yet. See [`docs/migration-status.md`](docs/migration-status.md) for progress and [`AGENTS.md`](AGENTS.md) for the engineering rules every change follows.
+> **Status:** Phase 02 (sign-in and shop isolation). Accounts, shops and shop switching work; products, stock and sales come next. See [`docs/migration-status.md`](docs/migration-status.md) for progress and [`AGENTS.md`](AGENTS.md) for the engineering rules every change follows.
 
 ## Stack
 
@@ -26,12 +26,12 @@ A shop-management PWA for wholesalers and retailers in Kariakoo, Dar es Salaam: 
 ```bash
 cp .env.example .env            # local placeholders only, never real secrets
 pnpm install                    # also generates the Prisma client
-docker compose up -d postgres   # PostgreSQL on localhost:5432
+docker compose up -d postgres mailpit   # PostgreSQL on :5432, Mailpit on :1025 / :8025
 pnpm db:migrate                 # apply migrations
 pnpm dev                        # API on :4000, web on :3000
 ```
 
-Open http://localhost:3000. The page shows whether the server and database are reachable. Swagger UI is at http://localhost:4000/api/docs when `SWAGGER_ENABLED=true`.
+Open http://localhost:3000 and create an account. The confirmation email arrives in Mailpit at http://localhost:8025. http://localhost:3000/status shows whether the server and database are reachable. Swagger UI is at http://localhost:4000/api/docs when `SWAGGER_ENABLED=true`.
 
 ## Running everything in containers
 
@@ -53,7 +53,7 @@ This starts PostgreSQL, a one-off migration job, the API, the web app and Mailpi
 | `pnpm test` | Unit and component tests |
 | `pnpm test:integration` | API tests against a real PostgreSQL (needs `docker compose up -d postgres` and `pnpm db:migrate`) |
 | `pnpm test:architecture` | Module-boundary rules |
-| `pnpm test:e2e` | Playwright smoke tests on desktop and mobile Chromium (needs PostgreSQL and `pnpm build`) |
+| `pnpm test:e2e` | Playwright tests on desktop and mobile Chromium (needs PostgreSQL, Mailpit and `pnpm build`) |
 | `pnpm db:migrate` | `prisma migrate deploy` |
 | `pnpm db:reset` | Drops and recreates the local database, then reapplies migrations |
 | `pnpm openapi:export` | Writes `docs/api/openapi.json` (run after `pnpm build`) |
@@ -66,6 +66,8 @@ Creating a new migration during development: `pnpm --filter backend db:migrate:d
 - Errors are RFC 9457 problem details (`application/problem+json`) with a stable `code` and a `traceId` that matches the `x-request-id` response header.
 - `GET /api/v1/health` is liveness. `GET /api/v1/health/ready` checks the database and answers `503` when it is unreachable.
 - Money and quantities travel as decimal strings, never JSON numbers.
+- Sign-in uses a session cookie. Every request that changes something must send `X-Requested-With: XMLHttpRequest`.
+- Shop routes act on the active shop stored in the session (`/shops/current`); no route takes a shop id. See the [security model](docs/security/security-model.md).
 
 ## Repository layout
 

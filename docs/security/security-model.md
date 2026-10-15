@@ -4,7 +4,7 @@
 |---|---|
 | Phase | 00 |
 | Status | Draft, awaiting owner approval |
-| Last updated | 2026-10-12 |
+| Last updated | 2026-10-15 (Phase 02 implementation notes in sections 3, 4 and 12) |
 
 ## 1. Assets
 
@@ -32,6 +32,22 @@ Shop financial records (sales, debts, cash), stock and cost data, customer and s
 - MFA: optional TOTP for owners later [A, not in initial scope].
 - CSRF: SameSite=Lax cookie + custom header requirement (`X-Requested-With` or CSRF token) for state-changing requests.
 
+**As built in Phase 02** (`backend/src/modules/auth`, `backend/src/common`):
+
+| Control | Implementation |
+|---|---|
+| Session token | 32 random bytes, base64url, in cookie `__Host-ksm_session` (HTTPS) or `ksm_session` (local HTTP). `HttpOnly`, `SameSite=Lax`, `Path=/`, `Secure` when `COOKIE_SECURE` (default on in production). Only the SHA-256 hash is stored. A new session is created at every sign-in. |
+| Lifetime | Idle timeout `SESSION_IDLE_HOURS` (12), absolute `SESSION_ABSOLUTE_DAYS` (7). Idle expiry slides at most every 5 minutes. Disabled users are rejected on the next request. |
+| Passwords | Argon2id (`@node-rs/argon2`, 19 MiB, 2 iterations, 1 lane: the OWASP minimum). 8 to 128 characters. Unknown emails are checked against a dummy hash so timing does not reveal accounts. |
+| Email tokens | 32 random bytes, SHA-256 stored, single-use (conditional update), 24 h for verification and 30 min for reset. A new token voids older ones. Links carry the token in the URL fragment (`#token=`) so it never reaches server or proxy logs; the page removes it from the address bar. |
+| Enumeration | Register, resend and forgot-password always answer 202 with the same message. A duplicate registration emails the existing owner instead. Wrong password and unknown email give the same 401. |
+| Unverified email | Sign-in is refused with 403 `email_not_verified`, but only after the correct password. |
+| Password reset | Revokes every session of the user and sends a "password changed" email. |
+| Rate limits | PostgreSQL fixed windows (decision A-013): register 10/h per IP; login 20/15 min per IP; 10 failed logins per email lock that email for 15 min; forgot-password 10/h per IP and 3/h per email; resend 10/h per IP and 3/h per email; verify 20/h per IP; reset 20/h per IP. 429 with `Retry-After`. |
+| Client IP | `TRUST_PROXY` hops of `X-Forwarded-For` are trusted (1 for the web app's `/api` forwarding). **The API port must not be reachable directly when `TRUST_PROXY` > 0**, or clients can choose their own IP for rate limits. |
+| CSRF | Every non-GET/HEAD/OPTIONS request must send `X-Requested-With: XMLHttpRequest` (403 `csrf_header_missing`), checked before authentication. |
+| Deny by default | One global `AccessGuard`. Routes are signed-in only unless marked `@Public()`; a route-inventory test lists the eight public routes and fails if any other route answers without a session. |
+
 ## 4. Tenant isolation [C, A-002]
 
 1. Active shop comes from the server session, set only after membership validation. Client-sent `shopId` values in paths/bodies are ignored or must match the session's active shop.
@@ -42,6 +58,14 @@ Shop financial records (sales, debts, cash), stock and cost data, customer and s
 6. Background jobs, exports, reports, and sync endpoints construct the same `ShopContext` explicitly.
 7. Optional PostgreSQL RLS as defence in depth (decide in Phase 02).
 8. Tests: for every shop-scoped endpoint, cross-tenant read, write, list-filter and reference-injection cases.
+
+**As built in Phase 02:**
+
+- `@ShopScoped()` routes take the active shop from the server-side session and re-check the membership (active membership, shop not suspended) on every request. A failed check clears the session's active shop and answers 403 `shop_access_revoked` or `shop_suspended`. This is the `ShopContextGuard` role from item 2, folded into `AccessGuard`.
+- No route accepts a shop id. "Current" always means the session's active shop. Switching shops (`PUT /auth/session/active-shop`) validates membership and answers 404 `shop_not_found` both for shops the user cannot access and for unknown ids. Unknown body fields (such as `shopId`) are rejected with 400.
+- `scopedToShop(prisma, shopId)` (`backend/src/database/tenant-scope.ts`) is a Prisma client extension. It adds `AND shop_id = <shop>` to every read, update and delete on shop-owned models, fills in the shop id on create, refuses a different shop id or a shop relation in writes, and throws on global or unclassified models.
+- `@OwnerOnly()` is a stand-in for permissions until Phase 03; it guards `PATCH /shops/current`.
+- PostgreSQL row-level security (item 7) is not added. A-002 is awaiting the owner's answer on whether to add it.
 
 ## 5. Authorization (dynamic RBAC) [C]
 
@@ -101,6 +125,8 @@ Shop financial records (sales, debts, cash), stock and cost data, customer and s
 - Encourage device screen lock; document that a stolen phone exposes the cached catalogue.
 
 ## 12. Auditing [C]
+
+*Phase 02:* `audit_logs` is append-only through a database trigger. Recorded so far: registration, email verification, login, failed login, logout, password-reset request, password reset, shop switch, shop creation and shop update (with before and after values).
 
 Audited actions include: login success/failure (security log), role/permission changes, membership changes, invitations, price changes, stock adjustments, discounts, refunds, voids, cash-session open/close/review, expense voids, subscription changes, exports, platform-admin access to shop data, device registration/revocation. Audit log is append-only and readable with `audit.read`.
 

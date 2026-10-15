@@ -4,7 +4,7 @@
 |---|---|
 | Phase | 00 |
 | Status | Draft logical model — **not** a final Prisma schema |
-| Last updated | 2026-10-12 |
+| Last updated | 2026-10-15 (Phase 02: identity and tenancy tables implemented) |
 
 ## 1. Conventions
 
@@ -28,6 +28,22 @@
 | **shop_memberships** | id, shop_id, user_id, status (`ACTIVE`,`SUSPENDED`,`REMOVED`), is_owner, joined_at | unique(shop_id, user_id). |
 | **invitations** | id, shop_id, email, token_hash, status (`PENDING`,`ACCEPTED`,`EXPIRED`,`REVOKED`), role_ids (via invitation_roles), invited_by_membership_id, expires_at, accepted_at, accepted_user_id, resend_count | unique(token_hash); partial unique(shop_id, email) where status = PENDING. |
 | **pos_devices** | id, shop_id, name, credential_hash, offline_enabled, registered_by, revoked_at, last_sync_at | Phase 10 [D-004]. |
+
+### Implemented in Phase 02 (migration `20261015055844_auth_and_tenancy`)
+
+`backend/prisma/schema.prisma` is the source of truth. Differences from the logical rows above:
+
+| Table | As built |
+|---|---|
+| `users` | As above. `email` is `citext`, so uniqueness ignores case. |
+| `sessions` | Adds `last_seen_at` and `idle_expires_at` (12 h idle, 7 day absolute by default). `token_hash` is `char(64)` (SHA-256 hex). `active_shop_id` references `shops` and is cleared if the shop is deleted. |
+| `auth_tokens` | As above, plus `created_at`. Issuing a new token marks older unused tokens of the same purpose as used. |
+| `shops` | As above without `settings` (no settings exist yet). `business_type` is `WHOLESALE`, `RETAIL` or `BOTH`. |
+| `shop_memberships` | As above, plus `updated_at` and `unique(shop_id, id)` so later tables can use composite foreign keys `(shop_id, membership_id)`. |
+| `audit_logs` | Built now (listed in section 11). Append-only is enforced by a trigger that rejects every `UPDATE` and `DELETE`, which also covers the application's own database role. |
+| `rate_limit_counters` | New infrastructure table: `key`, `window_start`, `hits`, `expires_at`. Fixed-window counters for sign-in, sign-up and recovery limits. Global, not shop-scoped. |
+
+Tenant classification lives in `backend/src/database/tenant-scope.ts`: `shops`, `shop_memberships` and `audit_logs` are shop-owned; `users`, `sessions`, `auth_tokens` and `rate_limit_counters` are global. An integration test fails if a new model is added without being classified.
 
 ## 3. Authorization
 
@@ -121,7 +137,7 @@ Credit amount on a sale is represented by a customer ledger entry, not a payment
 
 | Entity | Key fields | Notes |
 |---|---|---|
-| **audit_logs** | id, shop_id (nullable for platform), actor_user_id, actor_membership_id, action, entity_type, entity_id, before jsonb, after jsonb, ip, user_agent, created_at | Append-only; DB role for app has no UPDATE/DELETE grant [A]. |
+| **audit_logs** | id, shop_id (nullable for platform), actor_user_id, actor_membership_id, action, entity_type, entity_id, before jsonb, after jsonb, ip, user_agent, created_at | Append-only. Built in Phase 02 with a trigger that rejects UPDATE and DELETE (see section 2). |
 | **idempotency_records** | id, shop_id, scope (e.g. `sale.create`), key, request_hash, status (`IN_PROGRESS`,`COMPLETED`), response_code, response_body jsonb, created_at, expires_at | unique(shop_id, scope, key). Same key + different request_hash → 409. |
 | **outbox_messages** | id, shop_id, type, payload jsonb, status (`PENDING`,`PROCESSING`,`DONE`,`FAILED`), attempts, available_at, last_error | Polled with SKIP LOCKED. |
 | **document_sequences** | shop_id, doc_type, next_value | Per-shop gapless-ish numbering for sales/purchases/refunds, incremented with row lock in the same transaction. |
