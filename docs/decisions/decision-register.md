@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Last updated | 2026-10-12 |
+| Last updated | 2026-10-15 |
 | Owner | Taibi (shop-manager product owner) |
 
 Statuses: **Proposed** (recommendation, not approved) · **Approved** (explicit owner approval recorded) · **Superseded** · **Open** (no recommendation yet; needs input).
@@ -24,7 +24,7 @@ Business decisions are `D-xxx`; architecture decisions are `A-xxx`. A decision i
 | D-009 | Tax / TRA fiscal receipts | Open | 07 (receipts), 09 |
 | D-010 | Discount limits | Proposed | 07 |
 | D-011 | Returns, refunds and voids policy | Proposed | 07 |
-| D-012 | Login identifier (email vs phone) | Proposed | 02 |
+| D-012 | Login identifier (email vs phone) | Proposed (used in Phase 02) | 02 |
 | D-013 | Fractional quantities | Proposed | 05 |
 | D-014 | Purchase orders and partial receiving | Proposed | 06 |
 | D-015 | Landed costs on purchases | Proposed | 06 |
@@ -36,8 +36,8 @@ Business decisions are `D-xxx`; architecture decisions are `A-xxx`. A decision i
 | D-021 | Money precision and rounding | Proposed | 05, 07 |
 | D-022 | Platform support access to shop data | Proposed | 11 |
 | A-001 | Modular monolith | Approved (owner plan) | — |
-| A-002 | Tenancy model | Proposed | 02 |
-| A-003 | Authentication strategy | Proposed | 02 |
+| A-002 | Tenancy model | Proposed (used in Phase 02) | 02 |
+| A-003 | Authentication strategy | Proposed (used in Phase 02) | 02 |
 | A-004 | API conventions | Proposed | 01 |
 | A-005 | Workspace tooling | Proposed | 01 |
 | A-006 | Stock concurrency approach | Proposed | 05, 07 |
@@ -47,6 +47,8 @@ Business decisions are `D-xxx`; architecture decisions are `A-xxx`. A decision i
 | A-010 | Vitest instead of Jest | Approved | — |
 | A-011 | Linters per app | Proposed (used in Phase 01) | 01 |
 | A-012 | Runtime and major versions | Proposed (used in Phase 01) | 01 |
+| A-013 | Rate limiting in PostgreSQL | Proposed (used in Phase 02) | 02 |
+| A-014 | Sending email over SMTP | Proposed (used in Phase 02) | 02 |
 
 ---
 
@@ -136,7 +138,7 @@ Business decisions are `D-xxx`; architecture decisions are `A-xxx`. A decision i
 
 - **Recommendation:** Email + password for initial release (invitations are by email per plan). Phone/SMS OTP login is a later option (SMS cost, SIM-swap risk).
 - **Consequence:** Staff without email cannot be invited; owner may need to create emails for them. **Owner should confirm this is acceptable for Kariakoo staff.**
-- **Status:** Proposed.
+- **Status:** Proposed. *Phase 02 (2026-10-15):* built as email and password only; the owner was asked to confirm on 2026-10-15 and has not answered yet. Adding phone login later means a new identifier column and an SMS provider; sessions and shop isolation are unaffected.
 
 ## D-013 Fractional quantities
 
@@ -197,8 +199,12 @@ NestJS + Next.js + PostgreSQL + Prisma, Tailwind + shadcn/ui, TanStack Query, RH
 ## A-002 Tenancy model — Proposed
 Shared schema with `shop_id`; application-layer enforcement via `ShopContext` + Prisma extension; PostgreSQL RLS considered as defence in depth in Phase 02. Alternative (schema-per-tenant) rejected: migrations and reporting complexity for many small shops.
 
+*Phase 02 (2026-10-15):* built as described: the active shop lives in the server-side session and is re-validated on every request, and `scopedToShop()` confines queries on shop-owned models. **RLS was not added.** Recommendation: keep application-level enforcement now and revisit RLS before the first shop goes live, because it touches every query and connection. The owner was asked on 2026-10-15 (options: approve as built, or add RLS now) and has not answered yet.
+
 ## A-003 Authentication strategy — Proposed
 Server-side opaque sessions in HttpOnly cookies (see security model §3). Alternative: JWT access + rotating refresh tokens — better for third-party/native clients, harder revocation. Revisit if a native app is planned.
+
+*Phase 02 (2026-10-15):* built as described; details in security model section 3 ("As built in Phase 02"). The CSRF defence is the custom-header option (`X-Requested-With: XMLHttpRequest` on every state-changing request). Awaiting owner approval (asked 2026-10-15).
 
 ## A-004 API conventions — Proposed
 REST `/api/v1`, OpenAPI, RFC 9457 errors, cursor pagination, `Idempotency-Key`, decimal strings for money.
@@ -239,6 +245,21 @@ UUID v7 IDs; Prisma `Decimal` / `decimal.js` in code; strings in JSON; never JS 
 
 - **Decision used:** Node.js 22 LTS, pnpm 10.28, TypeScript 6.0 (TypeScript 7 is not yet supported by typescript-eslint or the Next.js/Nest toolchains), NestJS 12, Next.js 16.4, React 19, Prisma 7.10 with the `@prisma/adapter-pg` driver adapter (Prisma 8 is only a release candidate), PostgreSQL 17, Tailwind CSS 4.
 - **Status:** Proposed — used in Phase 01. **Date:** 2026-10-15
+
+## A-013 Rate limiting in PostgreSQL — Proposed
+
+- **Context:** The security model named `@nestjs/throttler` with a PostgreSQL-backed store. The throttler has no maintained PostgreSQL store, and the per-email lockout needs counters that the API can check and reset itself (for example, after a successful sign-in or password reset).
+- **Decision used:** a small `RateLimitService` storing fixed-window counters in a `rate_limit_counters` table with one atomic upsert per hit, a `@RateLimit()` decorator for per-IP and per-email limits, and expired rows deleted on roughly 1 in 100 hits. No Redis (consistent with A-007).
+- **Alternatives:** `@nestjs/throttler` with its in-memory store (limits reset on restart and are per-process); Redis (another service to run).
+- **Consequence:** one extra write per limited request on the auth endpoints only. Revisit if traffic grows enough for this to matter.
+- **Status:** Proposed — used in Phase 02. **Date:** 2026-10-15
+
+## A-014 Sending email over SMTP — Proposed
+
+- **Decision used:** `nodemailer` over SMTP, configured by `SMTP_*` variables, so any provider that offers SMTP (Amazon SES, Mailgun, Brevo, a Tanzanian host) can be used without code changes. Mailpit catches all mail locally and in CI. `MAIL_TRANSPORT=memory` is for automated tests and is refused in production.
+- **Interim:** mail is sent after the database change commits, inside the request; a failed send is logged and the user can ask for a new link. The PostgreSQL outbox (A-007) replaces this in Phase 03, where invitations need reliable delivery.
+- **Open:** the production provider and sending domain (needed before launch, with SPF and DKIM records).
+- **Status:** Proposed — used in Phase 02. **Date:** 2026-10-15
 
 ---
 
