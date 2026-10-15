@@ -1,0 +1,11 @@
+pnpm-lock.yaml
+**/dist
+**/.next
+**/generated
+**/coverage
+**/playwright-report
+**/test-results
+docs/api/openapi.json
+# Documentation is reviewed as written; do not reflow it.
+*.md
+.verify-ca

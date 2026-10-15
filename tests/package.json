@@ -1,0 +1,28 @@
+{
+  "name": "@ksm/tests",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test:integration": "vitest run --config integration/vitest.config.ts",
+    "test:architecture": "cd .. && depcruise backend/src apps/web/src packages/shared/src --config tests/architecture/dependency-cruiser.cjs",
+    "test:e2e": "playwright test --config e2e/playwright.config.ts",
+    "lint": "oxlint integration e2e",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "@ksm/shared": "workspace:*",
+    "@nestjs/common": "^12.0.1",
+    "@nestjs/core": "^12.0.1",
+    "@nestjs/testing": "^12.0.1",
+    "@playwright/test": "1.64.1",
+    "@types/node": "^22.0.0",
+    "@types/supertest": "^7.0.0",
+    "backend": "workspace:*",
+    "dependency-cruiser": "^18.6.0",
+    "oxlint": "^1.58.0",
+    "supertest": "^7.1.0",
+    "typescript": "~6.0.3",
+    "vitest": "^4.1.2"
+  }
+}

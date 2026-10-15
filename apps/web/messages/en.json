@@ -1,0 +1,16 @@
+{
+  "App": {
+    "name": "Kariakoo Shop Manager",
+    "tagline": "Sales, stock and credit for your shop"
+  },
+  "SystemStatus": {
+    "title": "System status",
+    "description": "The app is being set up. Shop features arrive in later releases.",
+    "api": "Server",
+    "database": "Database",
+    "checking": "Checking…",
+    "connected": "Connected",
+    "disconnected": "Not reachable",
+    "retry": "Check again"
+  }
+}

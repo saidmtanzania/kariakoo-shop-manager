@@ -23,7 +23,7 @@ Prioritize correctness, simple workflows, data integrity, usability, security, m
 - Database: PostgreSQL.
 - ORM: Prisma.
 - Offline: PWA service worker and IndexedDB.
-- Testing: Jest, Supertest and Playwright.
+- Testing: Vitest, Supertest and Playwright (Vitest replaces Jest; approved decision A-010).
 - Development environment: Docker Compose.
 - Use Redis only when a documented requirement justifies it.
 - Start with a modular monolith. Do not create microservices without an approved architecture decision.
@@ -231,4 +231,4 @@ A phase is not complete because the code generator says it is complete. Require:
 
 ## 14. Current phase
 
-Phase 00 is complete and decisions D-001 to D-004 are approved (see `docs/phase-00-report.md`). Phase 01 is next. Implement one phase at a time.
+Phase 00 is complete and decisions D-001 to D-004 are approved (see `docs/phase-00-report.md`). Phase 01 (repository and development environment) is implemented; see `docs/migration-status.md`. Do not start Phase 02 until the owner accepts Phase 01. Implement one phase at a time.

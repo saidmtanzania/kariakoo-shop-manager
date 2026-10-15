@@ -1,0 +1,16 @@
+{
+  "App": {
+    "name": "Kariakoo Shop Manager",
+    "tagline": "Mauzo, bidhaa na madeni ya duka lako"
+  },
+  "SystemStatus": {
+    "title": "Hali ya mfumo",
+    "description": "Programu inaandaliwa. Huduma za duka zitakuja katika matoleo yajayo.",
+    "api": "Seva",
+    "database": "Hifadhidata",
+    "checking": "Inakagua…",
+    "connected": "Imeunganishwa",
+    "disconnected": "Haipatikani",
+    "retry": "Kagua tena"
+  }
+}

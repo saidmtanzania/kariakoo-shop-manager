@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Lint, typecheck, unit and integration tests, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: ksm
+          POSTGRES_PASSWORD: ksm_ci_password
+          POSTGRES_DB: ksm
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U ksm -d ksm"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+    env:
+      DATABASE_URL: postgresql://ksm:ksm_ci_password@localhost:5432/ksm?schema=public
+      WEB_ORIGIN: http://localhost:3000
+      API_INTERNAL_URL: http://localhost:4000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm format:check
+      - name: Build shared contracts
+        run: pnpm --filter @ksm/shared build
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm test:architecture
+      - name: Apply migrations to a clean database
+        run: pnpm db:migrate
+      - name: Check the schema has no drift from migrations
+        run: pnpm --filter backend db:check-drift
+      - run: pnpm test:integration
+      - run: pnpm build
+      - name: Install Playwright Chromium
+        run: pnpm --filter @ksm/tests exec playwright install --with-deps chromium
+      - name: End-to-end smoke tests
+        run: pnpm test:e2e
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-report
+          path: tests/playwright-report
+          retention-days: 7
+      - name: Dependency audit (report only)
+        run: pnpm audit --prod --audit-level high || true
