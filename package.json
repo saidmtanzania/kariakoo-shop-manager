@@ -1,0 +1,31 @@
+{
+  "name": "kariakoo-shop-manager",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Shop-management PWA for Kariakoo wholesalers and retailers",
+  "license": "UNLICENSED",
+  "packageManager": "pnpm@10.28.0",
+  "engines": {
+    "node": ">=22.12 <23",
+    "pnpm": ">=10.28"
+  },
+  "scripts": {
+    "dev": "pnpm --filter @ksm/shared build && pnpm --parallel --filter backend --filter web dev",
+    "build": "pnpm --filter @ksm/shared build && pnpm --filter backend --filter web build",
+    "lint": "pnpm -r lint",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm --filter @ksm/shared --filter backend --filter web test",
+    "test:integration": "pnpm --filter @ksm/tests test:integration",
+    "test:architecture": "pnpm --filter @ksm/tests test:architecture",
+    "test:e2e": "pnpm --filter @ksm/tests test:e2e",
+    "db:up": "docker compose up -d postgres",
+    "db:migrate": "pnpm --filter backend db:migrate",
+    "db:reset": "pnpm --filter backend db:reset",
+    "openapi:export": "pnpm --filter backend openapi:export"
+  },
+  "devDependencies": {
+    "prettier": "^3.6.2"
+  }
+}

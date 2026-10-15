@@ -1,0 +1,23 @@
+node_modules/
+dist/
+.next/
+out/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
+
+# generated Prisma client
+backend/src/generated/
+
+# env files (only the template is committed)
+.env
+.env.*
+!.env.example
+
+# test output
+playwright-report/
+test-results/
+blob-report/
+
+.DS_Store
+*.log

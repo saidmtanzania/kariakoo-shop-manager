@@ -16,11 +16,11 @@
 
 | Layer | Tool | Scope | Location |
 |---|---|---|---|
-| Unit | Jest | Pure domain rules: unit conversion, weighted-average cost, cash expected math, allocation rules, payment state machine, permission resolution | `backend/src/**/*.spec.ts`, `packages/shared` |
-| API integration | Jest + Supertest + PostgreSQL | Endpoints through guards to DB; transactions, constraints, idempotency, tenant isolation | `tests/integration` |
-| Concurrency | Jest + parallel requests / multiple Prisma clients | Overselling, double receipt, double allocation | `tests/integration/concurrency` |
-| Architecture | dependency-cruiser + custom Jest metadata tests | Module boundaries; every route has a permission or `@Public`; shop-scoped controllers have `ShopContextGuard` | `tests/architecture` |
-| Frontend unit/component | Jest or Vitest + Testing Library [A] | Forms, cart math display, state badges | `apps/web` |
+| Unit | Vitest [A-010] | Pure domain rules: unit conversion, weighted-average cost, cash expected math, allocation rules, payment state machine, permission resolution | `backend/src/**/*.spec.ts`, `packages/shared` |
+| API integration | Vitest + Supertest + PostgreSQL | Endpoints through guards to DB; transactions, constraints, idempotency, tenant isolation | `tests/integration` |
+| Concurrency | Vitest + parallel requests / multiple Prisma clients | Overselling, double receipt, double allocation | `tests/integration/concurrency` |
+| Architecture | dependency-cruiser + custom Vitest metadata tests | Module boundaries; every route has a permission or `@Public`; shop-scoped controllers have `ShopContextGuard` | `tests/architecture` |
+| Frontend unit/component | Vitest + Testing Library | Forms, cart math display, state badges | `apps/web` |
 | End-to-end | Playwright | Critical workflows in a browser, incl. mobile viewport and offline emulation | `tests/e2e` |
 | Migration | Prisma migrate on empty DB + seed | Clean apply, no drift (`prisma migrate diff`) | CI script |
 | Performance | k6 or autocannon [A] | POS search and sale creation under realistic volumes | `tests/performance` (Phase 11) |
@@ -29,7 +29,7 @@
 
 - Factories/builders per module creating data through services (so invariants hold).
 - Every integration test creates **two shops** with users and data by default, so isolation is always exercised.
-- No shared mutable fixtures between tests; truncate or transactional rollback per test file; unique schema per Jest worker for parallelism [A].
+- No shared mutable fixtures between tests; truncate or transactional rollback per test file; unique schema per test worker for parallelism [A].
 - Money fixtures use the plan's examples (carton 12 pieces, 24,000 / 2,500; split 3,000 + 2,000).
 
 ## 4. Critical test catalogue

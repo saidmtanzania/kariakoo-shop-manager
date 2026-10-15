@@ -1,0 +1,19 @@
+packages:
+  - apps/*
+  - backend
+  - packages/*
+  - tests
+
+onlyBuiltDependencies:
+  - '@prisma/engines'
+  - prisma
+  - esbuild
+  - sharp
+  - unrs-resolver
+
+# Postinstall scripts we do not run: telemetry, and packages that ship
+# prebuilt platform binaries as optional dependencies.
+ignoredBuiltDependencies:
+  - '@parcel/watcher'
+  - '@scarf/scarf'
+  - '@swc/core'

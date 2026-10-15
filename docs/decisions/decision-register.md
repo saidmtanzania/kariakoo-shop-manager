@@ -44,6 +44,9 @@ Business decisions are `D-xxx`; architecture decisions are `A-xxx`. A decision i
 | A-007 | Outbox for side effects, no Redis initially | Proposed | 03 |
 | A-008 | IDs and money representation | Proposed | 01 |
 | A-009 | Technology stack | Approved (owner plan) | — |
+| A-010 | Vitest instead of Jest | Proposed (used in Phase 01) | 01 |
+| A-011 | Linters per app | Proposed (used in Phase 01) | 01 |
+| A-012 | Runtime and major versions | Proposed (used in Phase 01) | 01 |
 
 ---
 
@@ -200,8 +203,12 @@ Server-side opaque sessions in HttpOnly cookies (see security model §3). Altern
 ## A-004 API conventions — Proposed
 REST `/api/v1`, OpenAPI, RFC 9457 errors, cursor pagination, `Idempotency-Key`, decimal strings for money.
 
+*Phase 01 (2026-10-15):* implemented `/api/v1` URI versioning, OpenAPI via `@nestjs/swagger` (exported to `docs/api/openapi.json`), RFC 9457 error filter with `code` and `traceId`, and `x-request-id` propagation. Pagination and idempotency arrive with the first endpoints that need them. Still awaiting owner approval.
+
 ## A-005 Workspace tooling — Proposed
 pnpm workspaces (single lockfile) covering `apps/web`, `backend`, `packages/shared`. Node.js LTS (22.x) [A]. Turborepo optional, not required.
+
+*Phase 01 (2026-10-15):* implemented as described, plus a `tests` workspace package for integration, e2e and architecture tests. Turborepo not added. Still awaiting owner approval.
 
 ## A-006 Stock concurrency — Proposed
 Conditional `UPDATE ... WHERE quantity >= q` plus deterministic lock ordering at READ COMMITTED; `SELECT ... FOR UPDATE` for cost recalculation; CHECK constraint backstop. Alternative: SERIALIZABLE with retries (simpler reasoning, more retries under load).
@@ -211,6 +218,27 @@ PostgreSQL outbox + worker process (`@nestjs/schedule` or `pg-boss`). No Redis u
 
 ## A-008 IDs and money representation — Proposed
 UUID v7 IDs; Prisma `Decimal` / `decimal.js` in code; strings in JSON; never JS `number` for money.
+
+*Phase 01 (2026-10-15):* `newId()` helper (UUID v7, `uuid` package) and `moneyStringSchema` / `quantityStringSchema` in `packages/shared`. Still awaiting owner approval.
+
+## A-010 Vitest instead of Jest — Proposed
+
+- **Context:** The approved stack (A-009) names Jest. NestJS 12, released after the plan was written, is published as ES modules only, and its project generator now ships Vitest. Jest's ES-module support is still experimental (`--experimental-vm-modules`) and needs extra transform setup for Nest's decorators.
+- **Options:** (1) Vitest for unit, component and integration tests, keeping Supertest and Playwright; (2) Jest with experimental ESM mode and a decorator-aware transform; (3) pin NestJS 11 (CommonJS) to keep Jest.
+- **Recommendation:** Option 1. Vitest's API (`describe`, `it`, `expect`, mocks via `vi`) is Jest-compatible, so the testing strategy is unchanged apart from the runner. Next.js documents Vitest for component tests as well, so the whole repository uses one runner.
+- **Consequences:** `docs/architecture/testing-strategy.md` and AGENTS.md mention Vitest where they said Jest. Option 3 would start the project on an older major version.
+- **Status:** Proposed — used in Phase 01, awaiting owner approval. **Date:** 2026-10-15
+
+## A-011 Linters per app — Proposed
+
+- **Decision used:** oxlint for the API, shared package and tests (NestJS 12's default); ESLint with `eslint-config-next` for the web app (Next.js default, includes React hooks and accessibility rules); Prettier for formatting everywhere except Markdown docs.
+- **Note:** ESLint stays on 9.x because `eslint-config-next` 16.4 plugins do not yet support ESLint 10; pnpm reports ESLint 9 as deprecated.
+- **Status:** Proposed — used in Phase 01. **Date:** 2026-10-15
+
+## A-012 Runtime and major versions — Proposed
+
+- **Decision used:** Node.js 22 LTS, pnpm 10.28, TypeScript 6.0 (TypeScript 7 is not yet supported by typescript-eslint or the Next.js/Nest toolchains), NestJS 12, Next.js 16.4, React 19, Prisma 7.10 with the `@prisma/adapter-pg` driver adapter (Prisma 8 is only a release candidate), PostgreSQL 17, Tailwind CSS 4.
+- **Status:** Proposed — used in Phase 01. **Date:** 2026-10-15
 
 ---
 

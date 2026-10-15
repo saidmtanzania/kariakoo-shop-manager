@@ -1,0 +1,27 @@
+{
+  "name": "@ksm/shared",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Safe, stable contracts shared by the web app and the API. Never put secrets or server-only logic here.",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "lint": "oxlint src",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "zod": "^4.1.0"
+  },
+  "devDependencies": {
+    "oxlint": "^1.58.0",
+    "typescript": "~6.0.3",
+    "vitest": "^4.1.2"
+  }
+}

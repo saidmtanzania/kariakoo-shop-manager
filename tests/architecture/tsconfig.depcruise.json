@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    "baseUrl": "../..",
+    "module": "nodenext",
+    "moduleResolution": "nodenext",
+    "jsx": "react-jsx",
+    "allowJs": true,
+    "paths": {
+      "@/*": ["apps/web/src/*"]
+    }
+  },
+  "files": ["dependency-cruiser.cjs"]
+}

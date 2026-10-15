@@ -1,0 +1,84 @@
+# Local development stack. Not a production deployment (see decision D-020).
+#   docker compose up -d postgres       database only (run apps with pnpm dev)
+#   docker compose up -d --build        everything in containers
+name: kariakoo-shop-manager
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-ksm}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-ksm_local_password}
+      POSTGRES_DB: ${POSTGRES_DB:-ksm}
+    ports:
+      - '${POSTGRES_PORT:-5432}:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  migrate:
+    build:
+      context: .
+      dockerfile: deploy/docker/api.Dockerfile
+      target: migrate
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-ksm}:${POSTGRES_PASSWORD:-ksm_local_password}@postgres:5432/${POSTGRES_DB:-ksm}?schema=public
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: 'no'
+
+  api:
+    build:
+      context: .
+      dockerfile: deploy/docker/api.Dockerfile
+      target: runtime
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-ksm}:${POSTGRES_PASSWORD:-ksm_local_password}@postgres:5432/${POSTGRES_DB:-ksm}?schema=public
+      WEB_ORIGIN: ${WEB_ORIGIN:-http://localhost:3000}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      SWAGGER_ENABLED: ${SWAGGER_ENABLED:-true}
+    ports:
+      - '4000:4000'
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "fetch('http://localhost:4000/api/v1/health/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  web:
+    build:
+      context: .
+      dockerfile: deploy/docker/web.Dockerfile
+      args:
+        API_INTERNAL_URL: http://api:4000
+    ports:
+      - '3000:3000'
+    depends_on:
+      api:
+        condition: service_healthy
+
+  mailpit:
+    # Catches outgoing email locally (used from Phase 02). UI: http://localhost:8025
+    image: axllent/mailpit:v1.27
+    ports:
+      - '1025:1025'
+      - '8025:8025'
+
+volumes:
+  postgres-data:
