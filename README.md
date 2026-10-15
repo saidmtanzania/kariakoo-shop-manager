@@ -2,7 +2,7 @@
 
 A shop-management PWA for wholesalers and retailers in Kariakoo, Dar es Salaam: sales, stock, purchases, customer credit, cashier closing, staff permissions and subscriptions.
 
-> **Status:** Phase 02 (sign-in and shop isolation). Accounts, shops and shop switching work; products, stock and sales come next. See [`docs/migration-status.md`](docs/migration-status.md) for progress and [`AGENTS.md`](AGENTS.md) for the engineering rules every change follows.
+> **Status:** Phase 03 (roles, permissions and staff invitations). Accounts, shops, staff invitations, custom roles and the Team screen work; subscriptions come next, then products, stock and sales. See [`docs/migration-status.md`](docs/migration-status.md) for progress and [`AGENTS.md`](AGENTS.md) for the engineering rules every change follows.
 
 ## Stack
 
@@ -68,6 +68,8 @@ Creating a new migration during development: `pnpm --filter backend db:migrate:d
 - Money and quantities travel as decimal strings, never JSON numbers.
 - Sign-in uses a session cookie. Every request that changes something must send `X-Requested-With: XMLHttpRequest`.
 - Shop routes act on the active shop stored in the session (`/shops/current`); no route takes a shop id. See the [security model](docs/security/security-model.md).
+- Every route declares who may use it (`@Public`, `@SignedIn`, `@ShopScoped`, `@RequirePermission`, `@OwnerOnly`); a route that declares nothing is refused. Permissions are listed in the [permission catalog](docs/security/permission-catalog.md).
+- Email is queued in the `outbox_messages` table with the change that causes it and delivered by an in-process worker with retries (`OUTBOX_WORKER`, `OUTBOX_POLL_MS`).
 
 ## Repository layout
 

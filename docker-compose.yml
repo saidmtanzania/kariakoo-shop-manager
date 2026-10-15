@@ -51,6 +51,8 @@ services:
       SMTP_HOST: mailpit
       SMTP_PORT: 1025
       SEAT_LIMIT: ${SEAT_LIMIT:-}
+      # Raise only for automated browser tests against this stack.
+      RATE_LIMIT_MULTIPLIER: ${RATE_LIMIT_MULTIPLIER:-1}
     ports:
       - '4000:4000'
     depends_on:

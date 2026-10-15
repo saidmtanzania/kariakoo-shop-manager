@@ -2,27 +2,28 @@
 
 | Field | Value |
 |---|---|
-| Last updated | 2026-10-15 (Phase 02) |
+| Last updated | 2026-10-15 (Phase 03) |
 
 ## Current state
 
 | Item | State |
 |---|---|
 | Repository | pnpm workspace: `apps/web`, `backend`, `packages/shared`, `tests` |
-| Application code | Health endpoints; sign-in, registration, email confirmation, password recovery; shops, owner memberships and active-shop switching; web screens for all of these. No products, inventory or sales. |
-| Prisma schema | 7 models: users, sessions, auth_tokens, shops, shop_memberships, audit_logs, rate_limit_counters |
-| Migrations | 2 written, both applied to a clean database (see history) |
+| Application code | Health endpoints; sign-in, registration, email confirmation, password recovery; shops and active-shop switching; permissions, custom roles, member management, staff invitations, the audit log list and an email outbox; web screens for all of these, including Team and invitation acceptance. No subscriptions, products, inventory or sales. |
+| Prisma schema | 14 models: users, sessions, auth_tokens, shops, shop_memberships, audit_logs, rate_limit_counters, permissions, roles, role_permissions, membership_roles, invitations, invitation_roles, outbox_messages |
+| Migrations | 3 written, all applied to a clean database (see history) |
 | Databases | Local Docker Compose PostgreSQL 17 only; no hosted environments |
-| CI | GitHub Actions. Phase 01 (PR #1) passed every step on GitHub on 2026-10-15 (run 38689468793). Phase 02 adds a Mailpit service. |
+| CI | GitHub Actions. Phase 01 (PR #1) and Phase 02 (PR #2) passed on GitHub and were merged on 2026-10-15. PR #1 merged into `main`; PR #2 merged into `phase-01-dev-environment`, so `main` does not contain Phase 02 yet (the Phase 03 PR brings both). |
 
 ## Phase log
 
 | Phase | Status | Date | Evidence |
 |---|---|---|---|
 | 00 Requirements and architecture | **Complete** — D-001 to D-004 approved by owner | 2026-10-12 | Documents listed below |
-| 01 Repository and environment | **Implemented and verified locally and on GitHub CI; awaiting owner acceptance** | 2026-10-15 | Verification record below, `docs/phase-01-report.md`, PR #1 |
-| 02 Authentication and shop isolation | **Implemented and verified locally; awaiting owner acceptance** | 2026-10-15 | Verification record below, `docs/phase-02-report.md` |
-| 03–12 | Not started | — | — |
+| 01 Repository and environment | **Merged** (PR #1 into `main`) | 2026-10-15 | Verification record below, `docs/phase-01-report.md`, PR #1 |
+| 02 Authentication and shop isolation | **Merged** (PR #2, into `phase-01-dev-environment`) | 2026-10-15 | Verification record below, `docs/phase-02-report.md` |
+| 03 Dynamic RBAC and invitations | **Implemented and verified locally; awaiting owner acceptance** | 2026-10-15 | Verification record below, `docs/phase-03-report.md` |
+| 04–12 | Not started | — | — |
 
 ## Phase 00 record
 
@@ -108,9 +109,48 @@ Additional checks on 2026-10-15:
 - Docker images were again built with the local certificate workaround described above.
 - Delivery through a real email provider: only Mailpit was used.
 
+## Phase 03 verification record
+
+Run on 2026-10-15 from a fresh `git clone` of commit `6dd01f0` (branch `phase-03-rbac-invitations`) into an empty directory, with `.env` copied from `.env.example` and pointed at a brand-new database (`ksm_verify03`). Same environment as Phase 02 (Node 22, pnpm 10.28, PostgreSQL 17 and Mailpit from Docker Compose). Only `DATABASE_URL`, `WEB_ORIGIN` and `API_INTERNAL_URL` were exported.
+
+| # | Command | Result |
+|---|---|---|
+| 1 | `pnpm install --frozen-lockfile` | exit 0 |
+| 2 | `pnpm format:check` | exit 0 |
+| 3 | `pnpm --filter @ksm/shared build` | exit 0 |
+| 4 | `pnpm lint` | exit 0; no warnings or errors |
+| 5 | `pnpm typecheck` | exit 0 (all 4 packages) |
+| 6 | `pnpm test` | exit 0; shared 22/22, backend 23/23, web 14/14 passed |
+| 7 | `pnpm test:architecture` | exit 0; no violations (129 modules, 442 dependencies) |
+| 8 | `pnpm db:migrate` | exit 0; all three migrations applied to the empty database |
+| 9 | `pnpm --filter backend db:check-drift` | exit 0; no drift |
+| 10 | `pnpm test:integration` | exit 0; 127/127 passed against real PostgreSQL |
+| 11 | `pnpm build` | exit 0 |
+| 12 | `pnpm test:e2e` | exit 0; 18/18 passed (9 tests on desktop and Pixel 7 Chromium), API in production mode sending real SMTP to Mailpit |
+| 13 | `pnpm openapi:export` | exit 0; identical to the committed `docs/api/openapi.json` |
+| 14 | `git status --porcelain` | clean |
+
+Integration tests by file: roles and permissions 32, invitations 21, outbox 6, shop isolation 28, auth 21, tenant-scoped client 7, health 8, route inventory 4.
+
+Additional checks on 2026-10-15:
+
+| Check | Result |
+|---|---|
+| Negative test: the guard ignores the required permission | 12 integration tests failed, as intended; change reverted |
+| Negative test: the no-escalation check is turned off | 6 integration tests failed, as intended; change reverted |
+| `docker compose up --build` full stack | migrate applied the new migration; API and web healthy; Playwright 18/18 passed against the containers (with `RATE_LIMIT_MULTIPLIER=10` on the API); invitation emails arrived in the Mailpit container |
+
+### Not verified (Phase 03)
+
+- GitHub Actions has not run Phase 03 yet; it runs when the PR opens.
+- Docker images were again built with the local certificate workaround described above.
+- Delivery through a real email provider: only Mailpit was used.
+- Behaviour with several API instances running the outbox worker at once is covered by one integration test (two app instances draining together), not by a multi-container run.
+
 ## Migration history
 
 | # | Migration | Phase | Applied to clean DB | Notes |
 |---|---|---|---|---|
 | 1 | `20261015053259_init_extensions` | 01 | Yes, 2026-10-15 (local and in the compose migrate job) | `CREATE EXTENSION IF NOT EXISTS citext;` for case-insensitive emails in Phase 02. No tables. |
 | 2 | `20261015055844_auth_and_tenancy` | 02 | Yes, 2026-10-15 (clean clone database and compose migrate job) | Enums and tables for users, sessions, auth tokens, shops, memberships, audit logs and rate-limit counters, plus the append-only trigger on `audit_logs`. Additive only. |
+| 3 | `20261015063853_rbac_and_invitations` | 03 | Yes, 2026-10-15 (clean clone database and compose migrate job) | Enums `PermissionScope`, `InvitationStatus`, `OutboxStatus`; tables `permissions` (48 rows inserted), `roles`, `role_permissions`, `membership_roles`, `invitations`, `invitation_roles`, `outbox_messages`; trigger `role_permissions_shop_scope_only`. Additive only. Existing shops get no default roles (only shops created after the migration do); there are no production shops yet. |
