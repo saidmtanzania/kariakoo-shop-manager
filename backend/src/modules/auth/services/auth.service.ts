@@ -35,6 +35,7 @@ import {
   UsersService,
 } from '../../users/services/users.service.js';
 import { AuthTokensService } from './auth-tokens.service.js';
+import { SubscriptionsService } from '../../subscriptions/services/subscriptions.service.js';
 import { SessionService } from './session.service.js';
 
 /** Failed logins per email before the account is temporarily locked. */
@@ -61,6 +62,7 @@ export class AuthService {
     private readonly outbox: OutboxService,
     private readonly audit: AuditService,
     private readonly limits: RateLimitService,
+    private readonly subscriptions: SubscriptionsService,
   ) {}
 
   /**
@@ -314,10 +316,18 @@ export class AuthService {
         })
       : new Set<string>();
     return {
-      user: { id: auth.userId, email: auth.email, fullName: auth.fullName },
+      user: {
+        id: auth.userId,
+        email: auth.email,
+        fullName: auth.fullName,
+        isPlatformAdmin: auth.isPlatformAdmin,
+      },
       activeShopId: active?.shopId ?? null,
       memberships,
       permissions: [...permissions].sort(),
+      subscription: active
+        ? await this.subscriptions.summary(active.shopId)
+        : null,
     };
   }
 

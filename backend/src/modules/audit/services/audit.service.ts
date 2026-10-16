@@ -31,7 +31,18 @@ export type AuditAction =
   | 'invitation.created'
   | 'invitation.resent'
   | 'invitation.revoked'
-  | 'invitation.accepted';
+  | 'invitation.accepted'
+  | 'subscription.started'
+  | 'subscription.payment_submitted'
+  | 'subscription.payment_confirmed'
+  | 'subscription.payment_failed'
+  | 'subscription.payment_reversed'
+  | 'subscription.payment_flagged'
+  | 'platform.plan_created'
+  | 'platform.plan_updated'
+  | 'platform.billing_settings_updated'
+  | 'platform.admin_granted'
+  | 'platform.admin_revoked';
 
 export interface AuditEntry {
   action: AuditAction;

@@ -117,11 +117,14 @@ model Shop {
   createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt    DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  memberships ShopMembership[]
-  sessions    Session[]
-  auditLogs   AuditLog[]
-  roles       Role[]
-  invitations Invitation[]
+  memberships          ShopMembership[]
+  sessions             Session[]
+  auditLogs            AuditLog[]
+  roles                Role[]
+  invitations          Invitation[]
+  subscription         Subscription?
+  subscriptionPeriods  SubscriptionPeriod[]
+  subscriptionPayments SubscriptionPayment[]
 
   @@map("shops")
 }
@@ -336,4 +339,191 @@ model OutboxMessage {
 
   @@index([status, availableAt])
   @@map("outbox_messages")
+}
+
+// ---------------------------------------------------------------------------
+// Plans and subscriptions (Phase 04). docs/architecture/data-model.md
+// section 4; decisions D-001, D-005, D-006, D-019.
+// ---------------------------------------------------------------------------
+
+enum PlanInterval {
+  WEEK
+  MONTH
+}
+
+/// A price list entry, edited by platform staff. Prices are data, never code.
+model Plan {
+  id        String       @id @db.Uuid
+  code      String       @unique @db.VarChar(40)
+  name      String       @db.VarChar(80)
+  interval  PlanInterval
+  price     Decimal      @db.Decimal(18, 2)
+  currency  String       @default("TZS") @db.Char(3)
+  active    Boolean      @default(true)
+  /// Days of full access after a paid period ends (D-005).
+  graceDays Int          @default(3) @map("grace_days")
+  sortOrder Int          @default(0) @map("sort_order")
+  createdAt DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  features      PlanFeature[]
+  subscriptions Subscription[]
+  periods       SubscriptionPeriod[]
+  payments      SubscriptionPayment[]
+
+  @@map("plans")
+}
+
+/// A feature switch or limit on a plan. A missing row means not included.
+model PlanFeature {
+  planId     String  @map("plan_id") @db.Uuid
+  featureKey String  @map("feature_key") @db.VarChar(40)
+  enabled    Boolean @default(true)
+  /// For limits (seats, products): null means unlimited.
+  limitValue Int?    @map("limit_value")
+
+  plan Plan @relation(fields: [planId], references: [id], onDelete: Cascade)
+
+  @@id([planId, featureKey])
+  @@map("plan_features")
+}
+
+/// Platform-wide billing settings; a single row with id 1.
+model BillingSettings {
+  id                  Int      @id @default(1)
+  trialDays           Int      @default(14) @map("trial_days")
+  reminderDaysBefore  Int      @default(3) @map("reminder_days_before")
+  /// Shown to shops paying manually (where to send mobile money).
+  paymentInstructions String?  @map("payment_instructions") @db.VarChar(1000)
+  updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("billing_settings")
+}
+
+/// One per shop (D-001). Status is derived from these dates when read.
+model Subscription {
+  id          String    @id @db.Uuid
+  shopId      String    @unique @map("shop_id") @db.Uuid
+  /// The plan of the latest paid period; null while only trialing.
+  planId      String?   @map("plan_id") @db.Uuid
+  trialEndsAt DateTime  @map("trial_ends_at") @db.Timestamptz(3)
+  /// End of the latest confirmed paid period, or null if never paid.
+  paidUntil   DateTime? @map("paid_until") @db.Timestamptz(3)
+  graceDays   Int       @default(3) @map("grace_days")
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  shop      Shop                   @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  plan      Plan?                  @relation(fields: [planId], references: [id], onDelete: Restrict)
+  periods   SubscriptionPeriod[]
+  payments  SubscriptionPayment[]
+  reminders SubscriptionReminder[]
+
+  @@unique([shopId, id])
+  @@map("subscriptions")
+}
+
+/// Paid time added by one confirmed payment. Insert-only, except that a
+/// reversal sets reversed_at once (enforced by a trigger).
+model SubscriptionPeriod {
+  id             String       @id @db.Uuid
+  shopId         String       @map("shop_id") @db.Uuid
+  subscriptionId String       @map("subscription_id") @db.Uuid
+  planId         String       @map("plan_id") @db.Uuid
+  paymentId      String       @unique @map("payment_id") @db.Uuid
+  /// The plan's interval when paid, so paid-until can be recomputed after a reversal.
+  interval       PlanInterval
+  periodStart    DateTime     @map("period_start") @db.Timestamptz(3)
+  periodEnd      DateTime     @map("period_end") @db.Timestamptz(3)
+  createdAt      DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  reversedAt     DateTime?    @map("reversed_at") @db.Timestamptz(3)
+
+  shop         Shop                @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  subscription Subscription        @relation(fields: [shopId, subscriptionId], references: [shopId, id], onDelete: Restrict)
+  plan         Plan                @relation(fields: [planId], references: [id], onDelete: Restrict)
+  payment      SubscriptionPayment @relation(fields: [shopId, paymentId], references: [shopId, id], onDelete: Restrict)
+
+  @@unique([shopId, paymentId])
+  @@index([subscriptionId, periodEnd])
+  @@map("subscription_periods")
+}
+
+enum PaymentStatus {
+  PENDING
+  CONFIRMED
+  FAILED
+  REVERSED
+}
+
+/// A shop's attempt to pay for a plan. Confirmed only by platform staff
+/// (manual provider) or a verified provider callback, never by the browser.
+model SubscriptionPayment {
+  id                String        @id @db.Uuid
+  shopId            String        @map("shop_id") @db.Uuid
+  subscriptionId    String        @map("subscription_id") @db.Uuid
+  planId            String        @map("plan_id") @db.Uuid
+  /// Snapshot of the plan price when the payment was started.
+  amount            Decimal       @db.Decimal(18, 2)
+  currency          String        @db.Char(3)
+  provider          String        @db.VarChar(40)
+  /// Mobile-money transaction id (manual) or the provider's reference.
+  providerReference String        @map("provider_reference") @db.VarChar(100)
+  payerPhone        String?       @map("payer_phone") @db.VarChar(32)
+  status            PaymentStatus @default(PENDING)
+  idempotencyKey    String        @map("idempotency_key") @db.VarChar(80)
+  initiatedByUserId String?       @map("initiated_by_user_id") @db.Uuid
+  decidedByUserId   String?       @map("decided_by_user_id") @db.Uuid
+  confirmedAt       DateTime?     @map("confirmed_at") @db.Timestamptz(3)
+  failedAt          DateTime?     @map("failed_at") @db.Timestamptz(3)
+  reversedAt        DateTime?     @map("reversed_at") @db.Timestamptz(3)
+  /// Why it failed, was reversed, or needs review (e.g. amount mismatch).
+  note              String?       @db.VarChar(500)
+  needsReview       Boolean       @default(false) @map("needs_review")
+  createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  shop         Shop                @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  subscription Subscription        @relation(fields: [shopId, subscriptionId], references: [shopId, id], onDelete: Restrict)
+  plan         Plan                @relation(fields: [planId], references: [id], onDelete: Restrict)
+  period       SubscriptionPeriod?
+  events       PaymentEvent[]
+
+  @@unique([shopId, id])
+  @@unique([provider, providerReference])
+  @@unique([shopId, idempotencyKey])
+  @@index([status, createdAt])
+  @@map("subscription_payments")
+}
+
+/// Every provider callback as received, valid or not. Deduplicated by the
+/// provider's event id. Global: the shop is only known once verified.
+model PaymentEvent {
+  id              String    @id @db.Uuid
+  provider        String    @db.VarChar(40)
+  providerEventId String    @map("provider_event_id") @db.VarChar(120)
+  payload         Json
+  signatureValid  Boolean   @map("signature_valid")
+  outcome         String    @db.VarChar(40)
+  paymentId       String?   @map("payment_id") @db.Uuid
+  receivedAt      DateTime  @default(now()) @map("received_at") @db.Timestamptz(3)
+  processedAt     DateTime? @map("processed_at") @db.Timestamptz(3)
+
+  payment SubscriptionPayment? @relation(fields: [paymentId], references: [id], onDelete: Restrict)
+
+  @@unique([provider, providerEventId])
+  @@map("payment_events")
+}
+
+/// Records each expiry reminder sent, so it is sent once per paid-until date.
+model SubscriptionReminder {
+  subscriptionId String   @map("subscription_id") @db.Uuid
+  shopId         String   @map("shop_id") @db.Uuid
+  kind           String   @db.VarChar(20)
+  dueAt          DateTime @map("due_at") @db.Timestamptz(3)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id], onDelete: Cascade)
+
+  @@id([subscriptionId, kind, dueAt])
+  @@map("subscription_reminders")
 }

@@ -7,6 +7,7 @@ export interface AuthContext {
   email: string;
   fullName: string;
   activeShopId: string | null;
+  isPlatformAdmin: boolean;
 }
 
 /** Resolved only from the server-side session; never from client input. */

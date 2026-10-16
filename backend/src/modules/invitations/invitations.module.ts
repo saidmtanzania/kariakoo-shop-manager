@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { AuthModule } from '../auth/auth.module.js';
 import { AuthorizationModule } from '../authorization/authorization.module.js';
+import { SubscriptionsModule } from '../subscriptions/subscriptions.module.js';
 import {
   InvitationAcceptanceController,
   ShopInvitationsController,
@@ -8,7 +9,7 @@ import {
 import { InvitationsService } from './services/invitations.service.js';
 
 @Module({
-  imports: [AuthModule, AuthorizationModule],
+  imports: [AuthModule, AuthorizationModule, SubscriptionsModule],
   controllers: [ShopInvitationsController, InvitationAcceptanceController],
   providers: [InvitationsService],
 })

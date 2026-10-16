@@ -231,4 +231,4 @@ A phase is not complete because the code generator says it is complete. Require:
 
 ## 14. Current phase
 
-Phase 00 is complete and decisions D-001 to D-004 are approved (see `docs/phase-00-report.md`). Phases 01 and 02 are merged; Phase 03 (dynamic RBAC and invitations) is implemented and awaiting owner acceptance. See `docs/migration-status.md`. Do not start Phase 04 until the owner accepts Phase 03 and decides D-005. Implement one phase at a time.
+Phase 00 is complete and decisions D-001 to D-004 are approved (see `docs/phase-00-report.md`). Phases 01 to 03 are merged. Phase 04 (plans and subscriptions) is implemented under decisions D-005, D-019 and D-006 (subscriptions: manual confirmation first), approved on 2026-10-16, and is awaiting owner acceptance. See `docs/migration-status.md` and `docs/phase-04-report.md`. Do not start Phase 05 until the owner accepts Phase 04; Phase 05 also needs D-007 (negative stock) and D-013 (fractional quantities) decided. Implement one phase at a time.

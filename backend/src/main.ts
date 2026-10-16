@@ -11,7 +11,11 @@ async function bootstrap(): Promise<void> {
   loadLocalEnv();
   // Validate before Nest starts so a bad deployment fails with one clear message.
   validateEnv(process.env);
-  const app = await NestFactory.create(AppModule, { bufferLogs: true });
+  const app = await NestFactory.create(AppModule, {
+    bufferLogs: true,
+    // Payment callbacks are verified over the exact bytes received.
+    rawBody: true,
+  });
   configureApp(app);
   const config = app.get<AppConfig>(APP_CONFIG);
   await app.listen(config.PORT);

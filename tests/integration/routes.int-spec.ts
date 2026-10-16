@@ -26,6 +26,8 @@ const PUBLIC_ROUTES = [
   'POST /api/v1/auth/password/forgot',
   'POST /api/v1/auth/password/reset',
   'POST /api/v1/invitations/preview',
+  // Signed server-to-server provider callbacks (verified by the adapter).
+  'POST /api/v1/payments/callbacks/:provider',
 ].sort();
 
 /**

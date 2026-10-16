@@ -30,7 +30,10 @@ export async function createTestApp(
   const moduleRef = await Test.createTestingModule({
     imports: [AppModule],
   }).compile();
-  const app = moduleRef.createNestApplication({ logger: false });
+  const app = moduleRef.createNestApplication({
+    logger: false,
+    rawBody: true,
+  });
   configureApp(app);
   // Listening once lets supertest reuse the server; otherwise each request
   // opens and closes its own, and overlapping requests break.

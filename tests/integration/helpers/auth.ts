@@ -15,17 +15,31 @@ export function client(app: INestApplication): Client {
 }
 
 /**
- * Empties every application table except the seeded permission catalog.
- * TRUNCATE does not fire the append-only row trigger on audit_logs, which
- * only blocks UPDATE and DELETE.
+ * Empties every application table except the seeded permission catalog and
+ * billing settings (reset to defaults). TRUNCATE does not fire the row
+ * triggers on audit_logs, subscription_periods and payment_events, which
+ * only block UPDATE and DELETE.
  */
 export async function resetDatabase(app: INestApplication): Promise<void> {
   await app
     .get(PrismaService)
     .$executeRawUnsafe(
-      'TRUNCATE audit_logs, outbox_messages, invitation_roles, invitations, membership_roles, role_permissions, roles, sessions, auth_tokens, shop_memberships, shops, users, rate_limit_counters CASCADE',
+      'TRUNCATE audit_logs, outbox_messages, invitation_roles, invitations, membership_roles, role_permissions, roles, sessions, auth_tokens, shop_memberships, subscription_reminders, payment_events, subscription_periods, subscription_payments, subscriptions, plan_features, plans, shops, users, rate_limit_counters CASCADE',
+    );
+  // Back to the approved defaults (D-005, D-019).
+  await app
+    .get(PrismaService)
+    .$executeRawUnsafe(
+      'UPDATE billing_settings SET trial_days = 14, reminder_days_before = 3, payment_instructions = NULL WHERE id = 1',
     );
   app.get(MailService).sent.length = 0;
+}
+
+/** Clears rate-limit counters (files that create many users call this between tests). */
+export async function resetRateLimits(app: INestApplication): Promise<void> {
+  await app
+    .get(PrismaService)
+    .$executeRawUnsafe('TRUNCATE rate_limit_counters');
 }
 
 /** Delivers every queued outbox message now (the worker is off in tests). */

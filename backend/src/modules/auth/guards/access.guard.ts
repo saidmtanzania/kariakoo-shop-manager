@@ -2,6 +2,8 @@ import {
   type CanActivate,
   type ExecutionContext,
   ForbiddenException,
+  HttpException,
+  HttpStatus,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -10,6 +12,8 @@ import { CSRF_HEADER, CSRF_HEADER_VALUE } from '@ksm/shared';
 import type { Response } from 'express';
 import {
   ACCESS_LEVEL_KEY,
+  ENTITLEMENT_KEY,
+  type EntitlementRequirement,
   OWNER_ONLY_KEY,
   PERMISSION_KEY,
   SKIP_CSRF_KEY,
@@ -18,6 +22,7 @@ import {
 import type { AppRequest } from '../../../common/auth/request-context.js';
 import { AuthorizationService } from '../../authorization/services/authorization.service.js';
 import { MembershipsService } from '../../memberships/services/memberships.service.js';
+import { SubscriptionsService } from '../../subscriptions/services/subscriptions.service.js';
 import { SessionService } from '../services/session.service.js';
 
 const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
@@ -36,6 +41,12 @@ const SAFE_METHODS = new Set(['GET', 'HEAD', 'OPTIONS']);
  *      client sends can choose the shop.
  *   5. Permission: loaded from the database on every request, so role and
  *      membership changes apply immediately. Owners hold all permissions.
+ *   6. Entitlement: what the shop's subscription allows (writable, plan
+ *      features). Checked last, so a 402 never reveals anything to a member
+ *      who lacks the permission anyway.
+ *
+ * Platform routes need a session whose user is a platform operator; they
+ * never have a shop context.
  */
 @Injectable()
 export class AccessGuard implements CanActivate {
@@ -44,6 +55,7 @@ export class AccessGuard implements CanActivate {
     private readonly sessions: SessionService,
     private readonly memberships: MembershipsService,
     private readonly authorization: AuthorizationService,
+    private readonly subscriptions: SubscriptionsService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -96,8 +108,18 @@ export class AccessGuard implements CanActivate {
       email: resolved.user.email,
       fullName: resolved.user.fullName,
       activeShopId: resolved.session.activeShopId,
+      isPlatformAdmin: resolved.user.isPlatformAdmin,
     };
     if (level === 'user') return true;
+    if (level === 'platform') {
+      if (!resolved.user.isPlatformAdmin) {
+        throw new ForbiddenException({
+          message: 'This is for platform staff only.',
+          code: 'platform_admin_required',
+        });
+      }
+      return true;
+    }
 
     const shopId = resolved.session.activeShopId;
     if (!shopId) {
@@ -140,6 +162,35 @@ export class AccessGuard implements CanActivate {
         message: 'Only a shop owner can do this.',
         code: 'owner_required',
       });
+    }
+
+    const entitlement = this.reflector.getAllAndOverride<
+      EntitlementRequirement | undefined
+    >(ENTITLEMENT_KEY, targets);
+    if (entitlement) {
+      const ent = await this.subscriptions.entitlements(shopId);
+      if (ent.readOnly) {
+        throw new HttpException(
+          {
+            message:
+              'Your subscription has ended, so the shop is read-only. Pay to continue recording new work.',
+            code: 'subscription_read_only',
+          },
+          HttpStatus.PAYMENT_REQUIRED,
+        );
+      }
+      if (
+        entitlement.kind === 'feature' &&
+        !ent.features[entitlement.feature].enabled
+      ) {
+        throw new HttpException(
+          {
+            message: 'Your plan does not include this feature.',
+            code: 'feature_not_in_plan',
+          },
+          HttpStatus.PAYMENT_REQUIRED,
+        );
+      }
     }
     return true;
   }
