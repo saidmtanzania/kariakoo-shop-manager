@@ -2,7 +2,7 @@
 
 A shop-management PWA for wholesalers and retailers in Kariakoo, Dar es Salaam: sales, stock, purchases, customer credit, cashier closing, staff permissions and subscriptions.
 
-> **Status:** Phase 04 (plans and subscriptions). Accounts, shops, staff invitations, custom roles, the Team screen, free trials, plans and manually confirmed subscription payments work; products and stock come next, then sales. See [`docs/migration-status.md`](docs/migration-status.md) for progress and [`AGENTS.md`](AGENTS.md) for the engineering rules every change follows.
+> **Status:** Phase 05 (products and inventory). Accounts, shops, staff invitations, custom roles, free trials, manually confirmed subscription payments, products with units and prices, and stock with opening stock, adjustments, history and low-stock alerts work; purchases come next, then sales. See [`docs/migration-status.md`](docs/migration-status.md) for progress and [`AGENTS.md`](AGENTS.md) for the engineering rules every change follows.
 
 ## Stack
 
