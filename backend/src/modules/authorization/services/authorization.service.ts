@@ -48,4 +48,15 @@ export class AuthorizationService {
       });
     }
   }
+
+  /**
+   * Buying prices and average costs are visible to (and set by) people who
+   * can change prices or see profit reports; cashiers see selling prices only.
+   */
+  canSeeCosts(ctx: ShopContext): boolean {
+    return (
+      ctx.permissions.has('products.prices.update') ||
+      ctx.permissions.has('reports.profit.read')
+    );
+  }
 }

@@ -11,6 +11,7 @@ export {
 } from './tenant-scope.js';
 export {
   Prisma,
+  AdjustmentReason,
   AuthTokenPurpose,
   BusinessType,
   InvitationStatus,
@@ -20,6 +21,7 @@ export {
   PlanInterval,
   PermissionScope,
   ShopStatus,
+  StockMovementType,
   UserStatus,
 } from '../generated/prisma/client.js';
 export type {
@@ -30,6 +32,9 @@ export type {
   PaymentEvent,
   Plan,
   PlanFeature,
+  Product,
+  ProductCategory,
+  ProductUnit,
   Role,
   Session,
   Shop,
@@ -37,5 +42,6 @@ export type {
   Subscription,
   SubscriptionPayment,
   SubscriptionPeriod,
+  StockMovement,
   User,
 } from '../generated/prisma/client.js';

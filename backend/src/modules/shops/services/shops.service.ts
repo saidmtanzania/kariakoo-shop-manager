@@ -13,6 +13,7 @@ import {
   type Shop,
 } from '../../../database/index.js';
 import { AuditService } from '../../audit/services/audit.service.js';
+import { StockLedgerService } from '../../inventory/services/stock-ledger.service.js';
 import { RolesService } from '../../authorization/services/roles.service.js';
 import { SessionService } from '../../auth/services/session.service.js';
 import { SubscriptionsService } from '../../subscriptions/services/subscriptions.service.js';
@@ -48,11 +49,13 @@ export class ShopsService {
     private readonly audit: AuditService,
     private readonly roles: RolesService,
     private readonly subscriptions: SubscriptionsService,
+    private readonly ledger: StockLedgerService,
   ) {}
 
   /**
-   * Creates a shop with the caller as its owner, starts its free trial and
-   * makes it the session's active shop, all in one transaction.
+   * Creates a shop with the caller as its owner, its default stock location
+   * and free trial, and makes it the session's active shop, all in one
+   * transaction.
    */
   async create(
     auth: AuthContext,
@@ -74,6 +77,7 @@ export class ShopsService {
         data: { id: newId(), shopId, userId: auth.userId, isOwner: true },
       });
       await this.roles.createDefaults(shopId, tx);
+      await this.ledger.createDefaultLocation(tx, shopId);
       const subscription = await this.subscriptions.createForShop(tx, shopId);
       await this.sessions.setActiveShop(auth.sessionId, shopId, tx);
       await this.audit.record(

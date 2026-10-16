@@ -19,13 +19,13 @@ Business decisions are `D-xxx`; architecture decisions are `A-xxx`. A decision i
 | D-004 | Offline sales scope | Approved | 10 (and 07 data shape) |
 | D-005 | Plans, limits, grace and expiry restrictions | Approved (rules); plan names and prices are data entered by platform staff | 03 (seats), 04 |
 | D-006 | Mobile-money provider and confirmation approach | Partly approved: subscriptions use manual confirmation first; provider and POS approach open | 04, 07 |
-| D-007 | Negative stock | Proposed | 05 |
+| D-007 | Negative stock | Approved | 05, 07 |
 | D-008 | When wholesale price applies | Proposed | 07 |
 | D-009 | Tax / TRA fiscal receipts | Open | 07 (receipts), 09 |
 | D-010 | Discount limits | Proposed | 07 |
 | D-011 | Returns, refunds and voids policy | Proposed | 07 |
 | D-012 | Login identifier (email vs phone) | Proposed (used in Phase 02) | 02 |
-| D-013 | Fractional quantities | Proposed | 05 |
+| D-013 | Fractional quantities | Approved | 05 |
 | D-014 | Purchase orders and partial receiving | Proposed | 06 |
 | D-015 | Landed costs on purchases | Proposed | 06 |
 | D-016 | Customer credit-limit enforcement | Proposed | 07, 08 |
@@ -33,14 +33,14 @@ Business decisions are `D-xxx`; architecture decisions are `A-xxx`. A decision i
 | D-018 | Sale requires open cashier session | Proposed | 07, 08 |
 | D-019 | Trial period | Approved | 04 |
 | D-020 | Hosting, data residency, retention | Open | 11 (Phase 01 unaffected) |
-| D-021 | Money precision and rounding | Proposed | 05, 07 |
+| D-021 | Money precision and rounding | Approved | 05, 07 |
 | D-022 | Platform support access to shop data | Proposed | 11 |
 | A-001 | Modular monolith | Approved (owner plan) | — |
 | A-002 | Tenancy model | Proposed (used in Phase 02) | 02 |
 | A-003 | Authentication strategy | Proposed (used in Phase 02) | 02 |
 | A-004 | API conventions | Proposed | 01 |
 | A-005 | Workspace tooling | Proposed | 01 |
-| A-006 | Stock concurrency approach | Proposed | 05, 07 |
+| A-006 | Stock concurrency approach | Proposed (used in Phase 05) | 05, 07 |
 | A-007 | Outbox for side effects, no Redis initially | Proposed (used in Phase 03) | 03 |
 | A-008 | IDs and money representation | Proposed | 01 |
 | A-009 | Technology stack | Approved (owner plan) | — |
@@ -57,6 +57,10 @@ Business decisions are `D-xxx`; architecture decisions are `A-xxx`. A decision i
 | A-020 | Payment provider adapter, sandbox provider and callback handling | Proposed (used in Phase 04) | 04 |
 | A-021 | Platform staff flag set only from the command line | Proposed (used in Phase 04) | 04 |
 | A-022 | Entitlement checks in the access guard, answered with 402 | Proposed (used in Phase 04) | 04 |
+| A-023 | Who sees buying prices and average cost | Proposed (used in Phase 05) | 05 |
+| A-024 | Stock adjustments never take stock below zero | Proposed (used in Phase 05) | 05 |
+| A-025 | Product units, prices and archiving rules | Proposed (used in Phase 05) | 05 |
+| A-026 | One writer for stock balances and movements | Proposed (used in Phase 05) | 05 |
 
 ---
 
@@ -124,11 +128,13 @@ Business decisions are `D-xxx`; architecture decisions are `A-xxx`. A decision i
 - **Still open:** which provider (or aggregator) to use, and the POS approach for Phase 07. No real provider integration exists, and automatic recurring mobile-money deductions are not supported or promised.
 - **Status:** Partly approved (subscriptions: manual first). **Implemented:** Phase 04 (manual provider, adapter interface, sandbox provider for tests).
 
-## D-007 Negative stock
+## D-007 Negative stock — Approved
 
 - **Options:** (1) block negative stock everywhere (online); (2) allow with permission; (3) allow freely.
 - **Recommendation:** Block online; allow only for offline-sync exceptions flagged for review.
-- **Status:** Proposed.
+- **Decision (approved by Taibi on 2026-10-16, decision card "Owner setting"):** stock is blocked from going below zero by default. A shop owner can allow it for the shop, for sales, and products below zero are flagged in reports.
+- **How Phase 05 applies it:** the setting is `shops.allow_negative_stock` (default off), changed only by an owner (`PUT /shops/current/inventory/settings`, audited). Phase 05 has no sales, so nothing uses the setting yet; stock adjustments never go below zero whatever the setting (A-024). The inventory summary already counts products below zero. Phase 07 sales will read the setting.
+- **Status:** Approved by Taibi on 2026-10-16. **Implemented:** Phase 05 (setting and flag); Phase 07 (sales).
 
 ## D-008 When wholesale price applies
 
@@ -158,10 +164,12 @@ Business decisions are `D-xxx`; architecture decisions are `A-xxx`. A decision i
 - **Consequence:** Staff without email cannot be invited; owner may need to create emails for them. **Owner should confirm this is acceptable for Kariakoo staff.**
 - **Status:** Proposed. *Phase 02 (2026-10-15):* built as email and password only; the owner was asked to confirm on 2026-10-15 and has not answered yet. Adding phone login later means a new identifier column and an SMS provider; sessions and shop isolation are unaffected.
 
-## D-013 Fractional quantities
+## D-013 Fractional quantities — Approved
 
 - **Recommendation:** Support up to 3 decimal places in base units (fabric by metre, goods by kg). Products flag `allow_fraction`; default integer-only.
-- **Status:** Proposed.
+- **Decision (approved by Taibi on 2026-10-16, decision card "Per unit"):** each unit (kg, metre) can allow up to 3 decimal places; pieces and cartons stay whole numbers.
+- **How Phase 05 applies it:** `product_units.allow_fraction` (default false). Quantities are stored as `numeric(18,3)`. A quantity entered in a unit must be whole unless that unit allows fractions (422 `fraction_not_allowed`), and the resulting base quantity must be whole unless the base unit allows fractions (422 `base_fraction_not_allowed`). A unit's conversion must be a whole number of base units when the base unit is whole (`conversion_not_whole`).
+- **Status:** Approved by Taibi on 2026-10-16. **Implemented:** Phase 05.
 
 ## D-014 Purchase orders and partial receiving
 
@@ -198,10 +206,12 @@ Business decisions are `D-xxx`; architecture decisions are `A-xxx`. A decision i
 
 Hosting choice after cost review; whether personal data must stay in Tanzania or may be hosted abroad under the PDPA 2022; statutory retention of financial records. Requires owner input and possibly legal advice. Not a blocker for Phase 01 (local Docker only).
 
-## D-021 Money precision and rounding
+## D-021 Money precision and rounding — Approved
 
 - **Recommendation:** Currency TZS only; store `numeric(18,2)`; display without decimals; prices entered as whole shillings; rounding half-up per line; average cost `numeric(18,4)`.
-- **Status:** Proposed.
+- **Decision (approved by Taibi on 2026-10-16, decision card "Whole TSh"):** TZS only. Prices are entered and shown in whole shillings and stored as `numeric(18,2)`. Average cost keeps 4 decimal places; line amounts round half-up.
+- **How Phase 05 applies it:** buying, retail and wholesale prices accept whole shillings only (the API refuses cents and a database CHECK backs it up). Average cost is `numeric(18,4)`, computed with integer arithmetic and rounded half-up (`packages/shared/src/decimal.ts`). Line rounding is first used by Phase 07 sales.
+- **Status:** Approved by Taibi on 2026-10-16. **Implemented:** Phase 05 (prices, average cost); Phase 07 (sale lines).
 
 ## D-022 Platform support access
 
@@ -238,6 +248,8 @@ pnpm workspaces (single lockfile) covering `apps/web`, `backend`, `packages/shar
 
 ## A-006 Stock concurrency — Proposed
 Conditional `UPDATE ... WHERE quantity >= q` plus deterministic lock ordering at READ COMMITTED; `SELECT ... FOR UPDATE` for cost recalculation; CHECK constraint backstop. Alternative: SERIALIZABLE with retries (simpler reasoning, more retries under load).
+
+*Phase 05 (2026-10-16):* every stock change locks the product's balance row with `SELECT ... FOR UPDATE` (creating it at zero first with `INSERT ... ON CONFLICT DO NOTHING`) at READ COMMITTED, then checks the new balance, updates it and writes the movement in the same transaction. One lock covers both the quantity check and the average-cost update. Phase 05 changes one product per transaction; Phase 06/07 transactions that touch several products must lock them in product-id order to avoid deadlocks. Tested with 20 concurrent removals racing for 10 in stock (exactly 10 succeed). Still awaiting owner approval.
 
 ## A-007 Outbox and background work — Proposed
 PostgreSQL outbox + worker process (`@nestjs/schedule` or `pg-boss`). No Redis until justified.
@@ -334,6 +346,32 @@ UUID v7 IDs; Prisma `Decimal` / `decimal.js` in code; strings in JSON; never JS 
 - **Decision used:** a route that records new work declares `@RequireWritable()` (or `@RequireFeature(key)`). The global access guard checks it after the permission check, so billing never grants anything and never reveals billing state to someone without the permission. A read-only shop gets HTTP 402 `subscription_read_only`; a missing plan feature gets 402 `feature_not_in_plan`; a full plan gets 402 `seat_limit_reached`. Phase 04 marks invitation create, resend and accept; later phases mark their own write routes (sales, purchases, stock). Removing staff, changing roles and paying stay allowed when read-only.
 - **Status:** Proposed — used in Phase 04. **Date:** 2026-10-16
 
+## A-023 Who sees buying prices and average cost — Proposed
+
+- **Decision used:** buying prices and average cost are shown only to people who can change prices (`products.prices.update`) or read profit (`reports.profit.read`); owners always can. Everyone else gets `null` for those fields. Entering a buying price or a stock cost without that access is refused with 403 `permission_denied`. Retail and wholesale prices are visible to everyone who can read products.
+- **Status:** Proposed — used in Phase 05. **Date:** 2026-10-16
+
+## A-024 Stock adjustments never take stock below zero — Proposed
+
+- **Decision used:** D-007 lets an owner allow selling below zero. Phase 05 applies it to sales only: a stock adjustment that would leave the balance below zero is refused (409 `insufficient_stock`) whatever the setting, because a count correction or a loss cannot remove stock that is not recorded.
+- **Status:** Proposed — used in Phase 05. **Date:** 2026-10-16
+
+## A-025 Product units, prices and archiving rules — Proposed
+
+- **Decision used:**
+  - Each product has one base unit, chosen when it is created and never changed. Other units hold a fixed whole number of base units (for example, a carton of 12 pieces); a unit's conversion cannot be edited once saved, so history stays correct. Units are archived, never deleted. A product can have at most 10 active units.
+  - SKUs are unique per shop (case-insensitive); barcodes are unique per shop across all units.
+  - Someone with `products.create` can enter the first prices of a new product; later price changes need `products.prices.update` and are kept in a price history.
+  - Opening stock needs `inventory.opening` and can be recorded only once, before any other stock change; after that, changes are adjustments (`inventory.adjust`) with a reason, and "Other" needs a note.
+  - A product can be archived only when its stock is zero (409 `product_has_stock`). Products are never deleted.
+  - The plan feature `products` (D-005) limits active products per shop (402 `product_limit_reached`), checked under a lock on the shop row.
+- **Status:** Proposed — used in Phase 05. **Date:** 2026-10-16
+
+## A-026 One writer for stock balances and movements — Proposed
+
+- **Decision used:** only `StockLedgerService` writes `stock_balances` and `stock_movements`; an architecture test fails if any other source file does. Movements, adjustments and price history are append-only (database triggers refuse updates and deletes). Every movement keeps the unit, quantity and conversion the person entered, and the balance after it, so completed records do not change when a unit is edited later. Purchases (Phase 06) and sales (Phase 07) will add their own movement types through the same service.
+- **Status:** Proposed — used in Phase 05. **Date:** 2026-10-16
+
 ---
 
 ## Approval log
@@ -345,3 +383,6 @@ UUID v7 IDs; Prisma `Decimal` / `decimal.js` in code; strings in JSON; never JS 
 | 2026-10-15 | A-010 | Taibi (decision card in project thread) | Vitest replaces Jest; Supertest and Playwright unchanged. |
 | 2026-10-16 | D-006 (subscriptions only) | Taibi (decision card "Manual first") | Manual payment with platform confirmation until a provider is chosen; provider and POS approach still open. |
 | 2026-10-16 | D-005, D-019 | Taibi (decision card "Approve these subscription rules") | 14-day trial with all features, 3-day grace after paid periods, email reminders 3 days before and on the day, then read-only; values editable. Plan names and prices not decided. |
+| 2026-10-16 | D-007 | Taibi (decision card "Owner setting") | Blocked below zero by default; an owner can allow it per shop for sales; negative balances flagged in reports. |
+| 2026-10-16 | D-013 | Taibi (decision card "Per unit") | Each unit can allow up to 3 decimal places; pieces and cartons stay whole. |
+| 2026-10-16 | D-021 | Taibi (decision card "Whole TSh") | TZS only; whole-shilling prices stored as numeric(18,2); average cost 4 decimals; lines round half-up. |

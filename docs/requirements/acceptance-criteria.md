@@ -58,14 +58,14 @@ Criteria are written as testable statements (Given/When/Then where useful). Each
 
 ## AC-05 Products and inventory
 
-- [ ] Selling/receiving/adjusting in any unit converts to base units exactly (carton = 12 → −12 base).
-- [ ] `StockBalance.quantity` equals the sum of `StockMovement.quantity` per product/location (reconciliation query returns zero rows of difference).
-- [ ] Direct balance updates outside the inventory service are impossible (no endpoint; architecture test on repository usage).
-- [ ] Adjustment without reason or permission is rejected; accepted adjustments are audited.
-- [ ] Negative stock blocked [D-007].
-- [ ] Two concurrent adjustments on the same product produce the correct final balance.
-- [ ] Duplicate SKU/barcode within a shop rejected; allowed across shops.
-- [ ] Search returns results for name, SKU and barcode on 10,000 products within NFR-1 targets.
+- [x] Selling/receiving/adjusting in any unit converts to base units exactly (carton = 12 → −12 base). *(Adjustments and opening stock in Phase 05; selling and receiving use the same conversion in Phases 06 and 07.)*
+- [x] `StockBalance.quantity` equals the sum of `StockMovement.quantity` per product/location (reconciliation query returns zero rows of difference). *(`GET /shops/current/inventory/reconciliation`, and a test that it reports a tampered balance.)*
+- [x] Direct balance updates outside the inventory service are impossible (no endpoint; architecture test on repository usage). *(Source scan allows writes only in `stock-ledger.service.ts`; movements are append-only in the database.)*
+- [x] Adjustment without reason or permission is rejected; accepted adjustments are audited.
+- [x] Negative stock blocked [D-007]. *(Adjustments are always blocked below zero; the owner setting applies to Phase 07 sales.)*
+- [x] Two concurrent adjustments on the same product produce the correct final balance. *(20 concurrent removals of 1 from 10: exactly 10 succeed; mixed concurrent additions and removals end exactly.)*
+- [x] Duplicate SKU/barcode within a shop rejected; allowed across shops.
+- [x] Search returns results for name, SKU and barcode on 10,000 products within NFR-1 targets. *(p95 at most 64 ms against a 300 ms target, on the development machine.)*
 
 ## AC-06 Suppliers and purchases
 

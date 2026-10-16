@@ -192,6 +192,20 @@ function ActiveShop({ info }: { info: SessionInfo }) {
             <dd>{shop.data.currency}</dd>
           </dl>
         ) : null}
+        {can(info, 'products.read') || can(info, 'inventory.read') ? (
+          <div className="grid grid-cols-2 gap-2">
+            {can(info, 'products.read') ? (
+              <Button asChild>
+                <Link href="/products">{t('Home.products')}</Link>
+              </Button>
+            ) : null}
+            {can(info, 'inventory.read') ? (
+              <Button asChild variant="outline">
+                <Link href="/inventory">{t('Home.inventory')}</Link>
+              </Button>
+            ) : null}
+          </div>
+        ) : null}
         <p className="text-muted-foreground text-sm">{t('Home.comingSoon')}</p>
         {info.memberships.length > 1 ? (
           <div className="grid gap-2">

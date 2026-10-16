@@ -25,6 +25,14 @@ export const TENANT_MODELS = {
   SubscriptionPeriod: 'shopId',
   SubscriptionPayment: 'shopId',
   SubscriptionReminder: 'shopId',
+  StockLocation: 'shopId',
+  ProductCategory: 'shopId',
+  Product: 'shopId',
+  ProductUnit: 'shopId',
+  PriceHistory: 'shopId',
+  StockBalance: 'shopId',
+  StockAdjustment: 'shopId',
+  StockMovement: 'shopId',
 } as const satisfies Partial<Record<Prisma.ModelName, string>>;
 
 /** Models that are not owned by a shop (global identity and infrastructure). */
