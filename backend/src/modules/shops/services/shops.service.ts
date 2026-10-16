@@ -15,6 +15,7 @@ import {
 import { AuditService } from '../../audit/services/audit.service.js';
 import { RolesService } from '../../authorization/services/roles.service.js';
 import { SessionService } from '../../auth/services/session.service.js';
+import { SubscriptionsService } from '../../subscriptions/services/subscriptions.service.js';
 import type { CreateShopDto, UpdateShopDto } from '../dto/shop.dto.js';
 
 const blankToNull = (value: string | undefined) => {
@@ -46,11 +47,12 @@ export class ShopsService {
     private readonly sessions: SessionService,
     private readonly audit: AuditService,
     private readonly roles: RolesService,
+    private readonly subscriptions: SubscriptionsService,
   ) {}
 
   /**
-   * Creates a shop with the caller as its owner and makes it the session's
-   * active shop, all in one transaction.
+   * Creates a shop with the caller as its owner, starts its free trial and
+   * makes it the session's active shop, all in one transaction.
    */
   async create(
     auth: AuthContext,
@@ -72,6 +74,7 @@ export class ShopsService {
         data: { id: newId(), shopId, userId: auth.userId, isOwner: true },
       });
       await this.roles.createDefaults(shopId, tx);
+      const subscription = await this.subscriptions.createForShop(tx, shopId);
       await this.sessions.setActiveShop(auth.sessionId, shopId, tx);
       await this.audit.record(
         {
@@ -82,6 +85,19 @@ export class ShopsService {
           entityType: 'shop',
           entityId: shopId,
           after: snapshot(shop),
+          client,
+        },
+        tx,
+      );
+      await this.audit.record(
+        {
+          action: 'subscription.started',
+          shopId,
+          actorUserId: auth.userId,
+          actorMembershipId: membership.id,
+          entityType: 'subscription',
+          entityId: subscription.id,
+          after: { trialEndsAt: subscription.trialEndsAt.toISOString() },
           client,
         },
         tx,

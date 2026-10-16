@@ -11,6 +11,8 @@ import { AuthModule } from './modules/auth/auth.module.js';
 import { AuthorizationModule } from './modules/authorization/authorization.module.js';
 import { InvitationsModule } from './modules/invitations/invitations.module.js';
 import { OutboxModule } from './outbox/outbox.module.js';
+import { PaymentsModule } from './modules/payments/payments.module.js';
+import { SubscriptionsModule } from './modules/subscriptions/subscriptions.module.js';
 import { HealthModule } from './modules/health/health.module.js';
 import { MembershipsModule } from './modules/memberships/memberships.module.js';
 import { ShopsModule } from './modules/shops/shops.module.js';
@@ -63,6 +65,8 @@ import { UsersModule } from './modules/users/users.module.js';
     AuthModule,
     ShopsModule,
     InvitationsModule,
+    SubscriptionsModule,
+    PaymentsModule,
   ],
 })
 export class AppModule {}

@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { AuthorizationModule } from '../authorization/authorization.module.js';
 import { MembershipsModule } from '../memberships/memberships.module.js';
+import { SubscriptionsModule } from '../subscriptions/subscriptions.module.js';
 import { UsersModule } from '../users/users.module.js';
 import { AuthController } from './controllers/auth.controller.js';
 import { AccessGuard } from './guards/access.guard.js';
@@ -10,7 +11,12 @@ import { AuthService } from './services/auth.service.js';
 import { SessionService } from './services/session.service.js';
 
 @Module({
-  imports: [UsersModule, MembershipsModule, AuthorizationModule],
+  imports: [
+    UsersModule,
+    MembershipsModule,
+    AuthorizationModule,
+    SubscriptionsModule,
+  ],
   controllers: [AuthController],
   providers: [
     AuthService,

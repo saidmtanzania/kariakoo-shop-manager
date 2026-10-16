@@ -14,6 +14,7 @@ import type { InvitationPreview, InvitationView } from '@ksm/shared';
 import {
   Public,
   RequirePermission,
+  RequireWritable,
   SignedIn,
 } from '../../../common/auth/access.decorators.js';
 import {
@@ -51,6 +52,7 @@ export class ShopInvitationsController {
 
   @Post()
   @RequirePermission('users.invite')
+  @RequireWritable()
   @RateLimit({ name: 'invite', limit: 50, windowSeconds: 3600, by: 'ip' })
   create(
     @CurrentShop() shop: ShopContext,
@@ -62,6 +64,7 @@ export class ShopInvitationsController {
 
   @Post(':invitationId/resend')
   @RequirePermission('users.invite')
+  @RequireWritable()
   @HttpCode(HttpStatus.OK)
   @RateLimit({ name: 'invite', limit: 50, windowSeconds: 3600, by: 'ip' })
   resend(

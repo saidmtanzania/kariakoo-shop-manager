@@ -88,6 +88,25 @@ Platform scope (never delegable): `platform.shops.manage`, `platform.plans.manag
 | **subscription_payments** | id, shop_id, subscription_id, plan_id, amount, provider, provider_reference, payer_phone, status (`INITIATED`,`PENDING`,`CONFIRMED`,`FAILED`,`EXPIRED`,`REVERSED`), idempotency_key, confirmed_at | unique(provider, provider_reference). |
 | **payment_events** | id, provider, provider_event_id, payload jsonb, signature_valid, received_at, processed_at, related_payment_type/id | unique(provider, provider_event_id) — dedup for callbacks (POS and subscription). |
 
+### Implemented in Phase 04 (migration `20261016060401_subscriptions`)
+
+The design above changed in these ways when built (decisions D-005, D-006, D-019, A-019 to A-022):
+
+| Table | As built |
+|---|---|
+| `plans` | `id`, `code` (unique), `name`, `interval` (`WEEK`, `MONTH`; fixed once created), `price` numeric(18,2) ≥ 0, `currency` (default `TZS`), `active`, `grace_days` (0–60, default 3), `sort_order`, timestamps. No rows are inserted: platform staff enter plans. |
+| `plan_features` | pk(`plan_id`, `feature_key`), `enabled`, `limit_value` (null = unlimited, ≥ 0). A feature without a row is not included; a plan without a `seats` row allows the owner only. |
+| `billing_settings` | One row (`id` = 1, enforced by a check): `trial_days` (0–90, default 14), `reminder_days_before` (0–30, default 3), `payment_instructions` (shown to shops paying manually). The migration inserts the approved defaults. |
+| `subscriptions` | `id`, `shop_id` (unique, one per shop, D-001), `plan_id` (plan of the latest paid period, null while only trialing), `trial_ends_at`, `paid_until` (null if never paid), `grace_days` (copied from the plan when a period is confirmed), timestamps. **No status column:** status is derived from the dates when read (A-019). The migration starts a 14-day trial for every existing shop. |
+| `subscription_periods` | `id`, `shop_id`, `subscription_id`, `plan_id`, `payment_id` (unique), `interval`, `period_start`, `period_end` (> start), `created_at` (= confirmation time), `reversed_at`. Trigger `subscription_periods_append_only`: no delete; the only update allowed is setting `reversed_at` once. |
+| `subscription_payments` | `id`, `shop_id`, `subscription_id`, `plan_id`, `amount` (snapshot of the plan price when started), `currency`, `provider` (`manual`, `sandbox`), `provider_reference` (the mobile-money transaction id for manual payments, upper-cased), `payer_phone`, `status` (`PENDING`, `CONFIRMED`, `FAILED`, `REVERSED`), `idempotency_key`, `initiated_by_user_id`, `decided_by_user_id` (null when a provider decided), `confirmed_at`, `failed_at`, `reversed_at`, `note`, `needs_review`, timestamps. Unique (`provider`, `provider_reference`): a reference can be submitted once by any shop. Unique (`shop_id`, `idempotency_key`). |
+| `payment_events` | `id`, `provider`, `provider_event_id`, `payload` jsonb (at most 8,000 characters kept), `signature_valid`, `outcome`, `payment_id`, `received_at`, `processed_at`. Unique (`provider`, `provider_event_id`); invalid callbacks are keyed by a hash of their body. Trigger `payment_events_no_delete`. |
+| `subscription_reminders` | pk(`subscription_id`, `kind`, `due_at`), `shop_id`, `created_at`. One row per reminder sent (`expiring`, `expired`) for one end date, so each is sent once. |
+
+Status rule (`packages/shared/src/subscriptions.ts`): TRIALING before `trial_ends_at`; otherwise ACTIVE before `paid_until`; otherwise GRACE until `paid_until + grace_days`; otherwise RESTRICTED. An unpaid trial has no grace. Full access ends at the later of `trial_ends_at` and `paid_until`.
+
+Tenant classification: `subscriptions`, `subscription_periods`, `subscription_payments` and `subscription_reminders` are shop-owned; `plans`, `plan_features`, `billing_settings` and `payment_events` are global (a callback's shop is known only after it is verified).
+
 ## 5. Products
 
 | Entity | Key fields | Notes |

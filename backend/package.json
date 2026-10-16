@@ -19,7 +19,8 @@
     "db:reset": "prisma migrate reset --force",
     "openapi:export": "node dist/openapi-export.js",
     "postinstall": "prisma generate",
-    "db:check-drift": "prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code"
+    "db:check-drift": "prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code",
+    "platform:admin": "node dist/cli/grant-platform-admin.js"
   },
   "dependencies": {
     "@ksm/shared": "workspace:*",

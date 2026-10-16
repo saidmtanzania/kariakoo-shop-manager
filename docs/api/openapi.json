@@ -524,6 +524,139 @@
         ]
       }
     },
+    "/api/v1/shops/current/subscription": {
+      "get": {
+        "operationId": "ShopSubscriptionController_get_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "subscription"
+        ]
+      }
+    },
+    "/api/v1/plans": {
+      "get": {
+        "operationId": "PlansController_list_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "subscription"
+        ]
+      }
+    },
+    "/api/v1/platform/plans": {
+      "get": {
+        "operationId": "PlatformPlansController_list_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "platform"
+        ]
+      },
+      "post": {
+        "operationId": "PlatformPlansController_create_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePlanDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "platform"
+        ]
+      }
+    },
+    "/api/v1/platform/plans/{planId}": {
+      "patch": {
+        "operationId": "PlatformPlansController_update_v1",
+        "parameters": [
+          {
+            "name": "planId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdatePlanDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "platform"
+        ]
+      }
+    },
+    "/api/v1/platform/billing-settings": {
+      "get": {
+        "operationId": "PlatformPlansController_settings_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "platform"
+        ]
+      },
+      "put": {
+        "operationId": "PlatformPlansController_updateSettings_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BillingSettingsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "platform"
+        ]
+      }
+    },
     "/api/v1/shops": {
       "post": {
         "operationId": "ShopsController_create_v1",
@@ -723,6 +856,194 @@
         },
         "tags": [
           "invitations"
+        ]
+      }
+    },
+    "/api/v1/shops/current/subscription/payments": {
+      "post": {
+        "operationId": "ShopPaymentsController_submit_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SubmitPaymentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "subscription"
+        ]
+      }
+    },
+    "/api/v1/payments/callbacks/{provider}": {
+      "post": {
+        "operationId": "PaymentCallbacksController_receive_v1",
+        "parameters": [
+          {
+            "name": "provider",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "payments"
+        ]
+      }
+    },
+    "/api/v1/platform/payments": {
+      "get": {
+        "operationId": "PlatformPaymentsController_list_v1",
+        "parameters": [
+          {
+            "name": "filter",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "default": "attention",
+              "type": "string",
+              "enum": [
+                "attention",
+                "all"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "platform"
+        ]
+      }
+    },
+    "/api/v1/platform/payments/{paymentId}/confirm": {
+      "post": {
+        "operationId": "PlatformPaymentsController_confirm_v1",
+        "parameters": [
+          {
+            "name": "paymentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaymentDecisionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "platform"
+        ]
+      }
+    },
+    "/api/v1/platform/payments/{paymentId}/reject": {
+      "post": {
+        "operationId": "PlatformPaymentsController_reject_v1",
+        "parameters": [
+          {
+            "name": "paymentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaymentDecisionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "platform"
+        ]
+      }
+    },
+    "/api/v1/platform/payments/{paymentId}/reverse": {
+      "post": {
+        "operationId": "PlatformPaymentsController_reverse_v1",
+        "parameters": [
+          {
+            "name": "paymentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PaymentDecisionDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "platform"
+        ]
+      }
+    },
+    "/api/v1/platform/payments/reconcile": {
+      "post": {
+        "operationId": "PlatformPaymentsController_reconcile_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "platform"
         ]
       }
     }
@@ -999,6 +1320,138 @@
           "shopId"
         ]
       },
+      "PlanFeatureDto": {
+        "type": "object",
+        "properties": {
+          "featureKey": {
+            "type": "string",
+            "enum": [
+              "seats",
+              "products",
+              "offline_sales",
+              "profit_reports",
+              "export"
+            ]
+          },
+          "enabled": {
+            "type": "boolean"
+          },
+          "limitValue": {
+            "type": "number",
+            "nullable": true
+          }
+        },
+        "required": [
+          "featureKey",
+          "enabled",
+          "limitValue"
+        ]
+      },
+      "CreatePlanDto": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "example": "monthly-standard"
+          },
+          "name": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "interval": {
+            "type": "string",
+            "enum": [
+              "WEEK",
+              "MONTH"
+            ]
+          },
+          "price": {
+            "type": "string",
+            "example": "25000.00"
+          },
+          "graceDays": {
+            "type": "number",
+            "default": 3
+          },
+          "active": {
+            "type": "boolean",
+            "default": true
+          },
+          "sortOrder": {
+            "type": "number",
+            "default": 0
+          },
+          "features": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanFeatureDto"
+            }
+          }
+        },
+        "required": [
+          "code",
+          "name",
+          "interval",
+          "price",
+          "features"
+        ]
+      },
+      "UpdatePlanDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "price": {
+            "type": "string",
+            "example": "25000.00"
+          },
+          "graceDays": {
+            "type": "number",
+            "default": 3
+          },
+          "active": {
+            "type": "boolean",
+            "default": true
+          },
+          "sortOrder": {
+            "type": "number",
+            "default": 0
+          },
+          "features": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PlanFeatureDto"
+            }
+          }
+        }
+      },
+      "BillingSettingsDto": {
+        "type": "object",
+        "properties": {
+          "trialDays": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 90
+          },
+          "reminderDaysBefore": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 30
+          },
+          "paymentInstructions": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 1000
+          }
+        },
+        "required": [
+          "trialDays",
+          "reminderDaysBefore",
+          "paymentInstructions"
+        ]
+      },
       "CreateShopDto": {
         "type": "object",
         "properties": {
@@ -1084,6 +1537,49 @@
         "required": [
           "token"
         ]
+      },
+      "SubmitPaymentDto": {
+        "type": "object",
+        "properties": {
+          "planId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "manual",
+              "sandbox"
+            ],
+            "default": "manual"
+          },
+          "reference": {
+            "type": "string",
+            "minLength": 4,
+            "maxLength": 60
+          },
+          "payerPhone": {
+            "type": "string"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 80
+          }
+        },
+        "required": [
+          "planId",
+          "idempotencyKey"
+        ]
+      },
+      "PaymentDecisionDto": {
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": "string",
+            "maxLength": 500
+          }
+        }
       }
     }
   }

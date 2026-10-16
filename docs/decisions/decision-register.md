@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Last updated | 2026-10-15 |
+| Last updated | 2026-10-16 |
 | Owner | Taibi (shop-manager product owner) |
 
 Statuses: **Proposed** (recommendation, not approved) · **Approved** (explicit owner approval recorded) · **Superseded** · **Open** (no recommendation yet; needs input).
@@ -17,8 +17,8 @@ Business decisions are `D-xxx`; architecture decisions are `A-xxx`. A decision i
 | D-002 | Branches | Approved | 05 (schema shape) |
 | D-003 | Inventory costing method | Approved | 06, 07, 09 |
 | D-004 | Offline sales scope | Approved | 10 (and 07 data shape) |
-| D-005 | Plans, limits, grace and expiry restrictions | Open (Phase 03 uses an interim seat setting) | 03 (seats), 04 |
-| D-006 | Mobile-money provider and confirmation approach | Open | 04, 07 |
+| D-005 | Plans, limits, grace and expiry restrictions | Approved (rules); plan names and prices are data entered by platform staff | 03 (seats), 04 |
+| D-006 | Mobile-money provider and confirmation approach | Partly approved: subscriptions use manual confirmation first; provider and POS approach open | 04, 07 |
 | D-007 | Negative stock | Proposed | 05 |
 | D-008 | When wholesale price applies | Proposed | 07 |
 | D-009 | Tax / TRA fiscal receipts | Open | 07 (receipts), 09 |
@@ -31,7 +31,7 @@ Business decisions are `D-xxx`; architecture decisions are `A-xxx`. A decision i
 | D-016 | Customer credit-limit enforcement | Proposed | 07, 08 |
 | D-017 | Partial payments and unallocated receipts | Proposed | 08 |
 | D-018 | Sale requires open cashier session | Proposed | 07, 08 |
-| D-019 | Trial period | Open | 04 |
+| D-019 | Trial period | Approved | 04 |
 | D-020 | Hosting, data residency, retention | Open | 11 (Phase 01 unaffected) |
 | D-021 | Money precision and rounding | Proposed | 05, 07 |
 | D-022 | Platform support access to shop data | Proposed | 11 |
@@ -53,6 +53,10 @@ Business decisions are `D-xxx`; architecture decisions are `A-xxx`. A decision i
 | A-016 | Shop owners hold every permission through an owner flag | Proposed (used in Phase 03) | 03 |
 | A-017 | Default role templates per shop | Proposed (used in Phase 03) | 03 |
 | A-018 | One pending invitation per email, enforced in the service | Proposed (used in Phase 03) | 03 |
+| A-019 | Subscription status derived from dates, never stored | Proposed (used in Phase 04) | 04 |
+| A-020 | Payment provider adapter, sandbox provider and callback handling | Proposed (used in Phase 04) | 04 |
+| A-021 | Platform staff flag set only from the command line | Proposed (used in Phase 04) | 04 |
+| A-022 | Entitlement checks in the access guard, answered with 402 | Proposed (used in Phase 04) | 04 |
 
 ---
 
@@ -97,19 +101,28 @@ Business decisions are `D-xxx`; architecture decisions are `A-xxx`. A decision i
 - **Consequences:** Requires `pos_devices`, device credentials, sync endpoint, review UI; other devices are online-only.
 - **Status:** Approved by Taibi on 2026-10-12 (Option 1, including the proposed sub-question defaults for D-004).
 
-## D-005 Plans, limits, grace and expiry restrictions — Open
+## D-005 Plans, limits, grace and expiry restrictions — Approved
 
 - **Questions:** Plan names and prices (weekly / monthly in TZS)? Which features per plan (seats, products, offline, profit reports, export)? Grace period length (proposal: 3 days)? Restricted mode behaviour (proposal: read-only — no new sales/purchases, but view, export and receive debt payments allowed)? Reminder channel (SMS cost vs email)?
-- **Status:** Open. Needed before Phase 04 (seat limits used by Phase 03 can default to "unlimited" until decided).
-- *Phase 03 (2026-10-15):* seats are counted as members who are not removed plus unexpired pending invitations. Until plans exist, the optional `SEAT_LIMIT` setting applies one limit to every shop; unset means unlimited. Phase 04 replaces it with the plan's limit.
+- *Phase 03 (2026-10-15):* seats are counted as members who are not removed plus unexpired pending invitations. Until plans existed, the optional `SEAT_LIMIT` setting applied one limit to every shop. Phase 04 removed it.
+- **Decision (approved by Taibi on 2026-10-16, decision card "Approve these subscription rules"):**
+  - Grace: 3 days of full access after a paid period ends.
+  - Reminders by email: 3 days before full access ends and on the day it ends.
+  - After grace (or straight after an unpaid trial), the shop becomes read-only: viewing, exporting and recording customer debt payments stay allowed; new sales, purchases, stock changes and staff invitations are refused.
+  - Nothing is deleted, and paying restores access as soon as the payment is confirmed.
+  - The values are stored as settings platform staff can edit (grace per plan; trial length and reminder days in billing settings).
+- **Not decided by this approval:** plan names, prices and which features each plan includes. Phase 04 stores plans as data that platform staff enter on the platform screen; no price or plan exists until they add one. Feature keys available: `seats`, `products`, `offline_sales`, `profit_reports`, `export`. Only `seats` is enforced in Phase 04; the others are enforced by the phases that build those features. Reminders by SMS are not built (email only).
+- **Status:** Approved by Taibi on 2026-10-16 (rules above). **Implemented:** Phase 04.
 
-## D-006 Mobile-money provider and confirmation approach — Open
+## D-006 Mobile-money provider and confirmation approach — Partly approved
 
 - **Context:** Tanzanian options include direct operator APIs (Vodacom M-Pesa, Mixx by Yas/Tigo Pesa, Airtel Money, HaloPesa) or aggregators (e.g. Selcom, AzamPay, ClickPesa, DPO, Pesapal). Capabilities (STK push, callbacks, recurring, refunds, settlement) and onboarding requirements (business registration, TIN, licence) must be verified with the provider. Nothing is assumed.
 - **Options for POS:** (a) manual reference entry by cashier — no integration, "confirmed" by cashier with audit, optional manager verification; (b) STK push via aggregator — automatic confirmation via callback; (c) both.
 - **Options for subscriptions:** STK push via aggregator (recommended) or manual payment with platform-admin confirmation.
 - **Proposal:** POS uses (a) in the first release with an explicit `CONFIRMED_BY_CASHIER` attribution; subscriptions use one aggregator; no recurring auto-deduction promised.
-- **Status:** Open — provider research and owner choice required.
+- **Decision for subscriptions (approved by Taibi on 2026-10-16, decision card "Manual first"):** until a provider is chosen, shops pay the platform's mobile-money number and enter the transaction reference; platform staff check and confirm it on the platform screen. A provider adapter is in place so STK push can be added once a provider is chosen.
+- **Still open:** which provider (or aggregator) to use, and the POS approach for Phase 07. No real provider integration exists, and automatic recurring mobile-money deductions are not supported or promised.
+- **Status:** Partly approved (subscriptions: manual first). **Implemented:** Phase 04 (manual provider, adapter interface, sandbox provider for tests).
 
 ## D-007 Negative stock
 
@@ -175,9 +188,11 @@ Business decisions are `D-xxx`; architecture decisions are `A-xxx`. A decision i
 - **Recommendation:** Yes for sales with cash payment; shop setting to relax for owner-only shops.
 - **Status:** Proposed.
 
-## D-019 Trial period — Open
+## D-019 Trial period — Approved
 
-Free trial length (e.g. 7 or 14 days) and which features it includes.
+- **Question:** free trial length (e.g. 7 or 14 days) and which features it includes.
+- **Decision:** a 14-day free trial with every feature and no limits, starting when the shop is created. An unpaid trial goes straight to read-only when it ends (grace applies only after a paid period). Paying during the trial adds the paid time after the trial ends. The length is a billing setting platform staff can change; a change applies to shops created afterwards. Shops that existed before Phase 04 started their 14-day trial when the migration ran.
+- **Status:** Approved by Taibi on 2026-10-16 (decision card "Approve these subscription rules"). **Implemented:** Phase 04.
 
 ## D-020 Hosting, data residency and retention — Open
 
@@ -295,6 +310,30 @@ UUID v7 IDs; Prisma `Decimal` / `decimal.js` in code; strings in JSON; never JS 
 - **Revisit:** when Prisma supports partial indexes, add the index as a second guard.
 - **Status:** Proposed — used in Phase 03. **Date:** 2026-10-15
 
+## A-019 Subscription status derived from dates, never stored — Proposed
+
+- **Decision used:** a subscription stores only dates (`trial_ends_at`, `paid_until`, `grace_days`). Its status (TRIALING, ACTIVE, GRACE, RESTRICTED) is computed by one pure function in `packages/shared/src/subscriptions.ts` whenever it is read, so there is no expiry job that could fail to run and no status that can disagree with the payment history.
+- **Paid time:** each confirmed payment inserts a `subscription_periods` row. A period starts at the later of now, the trial end and the current paid-until (no back-dating), and lasts one week or one calendar month in UTC (31 January + 1 month = 28/29 February). Periods can only be marked reversed, never edited or deleted (database trigger). A reversal recomputes paid-until from the remaining periods in the order they were confirmed.
+- **Status:** Proposed — used in Phase 04. **Date:** 2026-10-16
+
+## A-020 Payment provider adapter, sandbox provider and callback handling — Proposed
+
+- **Decision used:** billing rules live in `PaymentsService`; a provider adapter only starts payments (outside any transaction), verifies callback signatures over the exact bytes received, and looks up a payment's status. Adapters now: `manual` (no callbacks; platform staff confirm) and `sandbox` (HMAC-SHA256 signed callbacks and a status lookup, enabled only by `PAYMENT_SANDBOX_SECRET` and refused in production), used to test the callback path a real provider will use.
+- **Callbacks:** every callback is stored in `payment_events`, valid or not, deduplicated by the provider's event id. Only a verified callback can change a payment; changes lock the payment row. A confirmation whose amount or currency differs, a success after a failure, a failure after a confirmation, or a reversal of an unconfirmed payment is flagged for platform review instead of being applied.
+- **Reconciliation:** payments still pending after `PAYMENT_RECONCILE_AFTER_MINUTES` are looked up with the provider (outside transactions) and go through the same rules. Manual payments wait for platform staff.
+- **Status:** Proposed — used in Phase 04. **Date:** 2026-10-16
+
+## A-021 Platform staff flag set only from the command line — Proposed
+
+- **Decision used:** `users.is_platform_admin` marks platform staff, who can use the `/platform` API and screen (plans, billing settings, payment decisions). No API can set it; it is granted or removed with `pnpm --filter backend platform:admin grant|revoke <email>`, which writes an audit entry. Platform staff are not given shop access by this flag.
+- **Revisit:** the four `platform.*` permissions in the catalog can be split across platform roles when there is more than one kind of platform staff.
+- **Status:** Proposed — used in Phase 04. **Date:** 2026-10-16
+
+## A-022 Entitlement checks in the access guard, answered with 402 — Proposed
+
+- **Decision used:** a route that records new work declares `@RequireWritable()` (or `@RequireFeature(key)`). The global access guard checks it after the permission check, so billing never grants anything and never reveals billing state to someone without the permission. A read-only shop gets HTTP 402 `subscription_read_only`; a missing plan feature gets 402 `feature_not_in_plan`; a full plan gets 402 `seat_limit_reached`. Phase 04 marks invitation create, resend and accept; later phases mark their own write routes (sales, purchases, stock). Removing staff, changing roles and paying stay allowed when read-only.
+- **Status:** Proposed — used in Phase 04. **Date:** 2026-10-16
+
 ---
 
 ## Approval log
@@ -304,3 +343,5 @@ UUID v7 IDs; Prisma `Decimal` / `decimal.js` in code; strings in JSON; never JS 
 | 2026-10-12 | A-001, A-009 | Owner (project plan message) | Stated directly in the plan. |
 | 2026-10-12 | D-001, D-002, D-003, D-004 | Taibi (decision card in project thread) | Approved all four recommended options as written. |
 | 2026-10-15 | A-010 | Taibi (decision card in project thread) | Vitest replaces Jest; Supertest and Playwright unchanged. |
+| 2026-10-16 | D-006 (subscriptions only) | Taibi (decision card "Manual first") | Manual payment with platform confirmation until a provider is chosen; provider and POS approach still open. |
+| 2026-10-16 | D-005, D-019 | Taibi (decision card "Approve these subscription rules") | 14-day trial with all features, 3-day grace after paid periods, email reminders 3 days before and on the day, then read-only; values editable. Plan names and prices not decided. |

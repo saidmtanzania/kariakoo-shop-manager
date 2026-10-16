@@ -4,7 +4,6 @@ import {
   GoneException,
   HttpException,
   HttpStatus,
-  Inject,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -20,8 +19,6 @@ import type {
 } from '../../../common/auth/request-context.js';
 import { generateToken, hashToken } from '../../../common/crypto/tokens.js';
 import { newId } from '../../../common/ids/ids.js';
-import { APP_CONFIG } from '../../../config/config.module.js';
-import type { AppConfig } from '../../../config/env.schema.js';
 import {
   InvitationStatus,
   MembershipStatus,
@@ -37,6 +34,7 @@ import { AuditService } from '../../audit/services/audit.service.js';
 import { SessionService } from '../../auth/services/session.service.js';
 import { AuthorizationService } from '../../authorization/services/authorization.service.js';
 import { RolesService } from '../../authorization/services/roles.service.js';
+import { SubscriptionsService } from '../../subscriptions/services/subscriptions.service.js';
 import { normalizeEmail } from '../../users/services/users.service.js';
 
 export const INVITATION_TTL_MS = 7 * 24 * 3_600_000;
@@ -77,7 +75,7 @@ export class InvitationsService {
     private readonly outbox: OutboxService,
     private readonly mail: MailService,
     private readonly audit: AuditService,
-    @Inject(APP_CONFIG) private readonly config: AppConfig,
+    private readonly subscriptions: SubscriptionsService,
   ) {}
 
   async list(ctx: ShopContext): Promise<InvitationView[]> {
@@ -149,7 +147,7 @@ export class InvitationsService {
           code: 'invitation_pending',
         });
       }
-      await this.assertSeatAvailable(db);
+      await this.assertSeatAvailable(db, ctx.shopId);
 
       const token = generateToken();
       await db.invitation.create({
@@ -223,7 +221,7 @@ export class InvitationsService {
         roles.flatMap((r) => r.permissions),
       );
       if (effectiveStatus(inv) === 'EXPIRED')
-        await this.assertSeatAvailable(db, invitationId);
+        await this.assertSeatAvailable(db, ctx.shopId, invitationId);
 
       const token = generateToken();
       await db.invitation.update({
@@ -321,6 +319,7 @@ export class InvitationsService {
       select: { id: true, shopId: true },
     });
     if (!found) throw notFound();
+    await this.assertWritable(found.shopId);
 
     await scopedToShop(this.prisma, found.shopId).$transaction(async (db) => {
       const shop = await this.lockShop(db, found.shopId);
@@ -346,7 +345,7 @@ export class InvitationsService {
           code: 'already_member',
         });
       }
-      await this.assertSeatAvailable(db, inv.id, 1);
+      await this.assertSeatAvailable(db, found.shopId, inv.id, 1);
 
       const { count } = await db.invitation.updateMany({
         where: {
@@ -433,17 +432,19 @@ export class InvitationsService {
   }
 
   /**
-   * Seats are members who are not removed plus pending invitations
-   * (decision D-005 sets per-plan limits in Phase 04; until then SEAT_LIMIT,
-   * when set, applies to every shop).
+   * Seats are members who are not removed plus unexpired pending
+   * invitations, against the plan's `seats` limit (decision D-005; the
+   * trial has no limit). The shop row lock taken by the caller serialises
+   * concurrent invitations and acceptances.
    */
   private async assertSeatAvailable(
     db: ScopedTx,
+    shopId: string,
     excludeInvitationId?: string,
     adding = 1,
   ): Promise<void> {
-    const limit = this.config.SEAT_LIMIT;
-    if (limit === undefined) return;
+    const limit = await this.subscriptions.seatLimit(shopId);
+    if (limit === null) return;
     const [members, pending] = await Promise.all([
       db.shopMembership.count({
         where: { status: { not: MembershipStatus.REMOVED } },
@@ -457,10 +458,31 @@ export class InvitationsService {
       }),
     ]);
     if (members + pending + adding > limit) {
-      throw new ForbiddenException({
-        message: `This shop has reached its limit of ${limit} staff seats.`,
-        code: 'seat_limit_reached',
-      });
+      throw new HttpException(
+        {
+          message: `Your plan allows ${limit} staff seat${limit === 1 ? '' : 's'}, and they are all in use.`,
+          code: 'seat_limit_reached',
+        },
+        HttpStatus.PAYMENT_REQUIRED,
+      );
+    }
+  }
+
+  /**
+   * Joining a shop adds work to it, so a read-only shop cannot take on new
+   * members (decision D-019). Invite and resend are refused by the access
+   * guard; acceptance has no shop context there, so it is checked here.
+   */
+  private async assertWritable(shopId: string): Promise<void> {
+    if ((await this.subscriptions.entitlements(shopId)).readOnly) {
+      throw new HttpException(
+        {
+          message:
+            'This shop’s subscription has ended, so it cannot add staff until it is renewed.',
+          code: 'subscription_read_only',
+        },
+        HttpStatus.PAYMENT_REQUIRED,
+      );
     }
   }
 

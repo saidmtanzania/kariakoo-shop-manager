@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { SubscriptionSummary } from './subscriptions.js';
 
 /** Limits shared by the API's validation and the web forms. */
 export const AUTH_LIMITS = {
@@ -55,6 +56,8 @@ export interface SessionUser {
   id: string;
   email: string;
   fullName: string;
+  /** Platform operators see the platform admin screens. */
+  isPlatformAdmin: boolean;
 }
 
 export interface MembershipSummary {
@@ -71,6 +74,8 @@ export interface SessionInfo {
   memberships: MembershipSummary[];
   /** The caller's permissions in the active shop (all shop permissions for owners). */
   permissions: string[];
+  /** The active shop's subscription status, for banners; null without a shop. */
+  subscription: SubscriptionSummary | null;
 }
 
 export interface ShopDetails {

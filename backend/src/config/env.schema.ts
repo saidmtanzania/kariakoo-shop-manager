@@ -75,14 +75,32 @@ export const envSchema = z.object({
   OUTBOX_WORKER: z.enum(['on', 'off']).default('on'),
   OUTBOX_POLL_MS: z.coerce.number().int().min(100).max(60_000).default(1000),
 
-  // ---- Staff ----
+  // ---- Subscriptions (Phase 04) ----
   /**
-   * Maximum members plus pending invitations per shop, until plans define
-   * seat limits in Phase 04 (decision D-005). Unset means no limit.
+   * Run the in-process subscription jobs (expiry reminders and payment
+   * reconciliation). Tests turn them off and run them explicitly.
    */
-  SEAT_LIMIT: z.preprocess(
+  SUBSCRIPTION_JOBS: z.enum(['on', 'off']).default('on'),
+  SUBSCRIPTION_JOBS_INTERVAL_MS: z.coerce
+    .number()
+    .int()
+    .min(1_000)
+    .max(3_600_000)
+    .default(300_000),
+  /** Ask the provider about a payment still pending after this many minutes. */
+  PAYMENT_RECONCILE_AFTER_MINUTES: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(1_440)
+    .default(10),
+  /**
+   * Enables the sandbox payment provider (signed test callbacks) for
+   * development and tests. Refused in production.
+   */
+  PAYMENT_SANDBOX_SECRET: z.preprocess(
     (value) => (value === '' ? undefined : value),
-    z.coerce.number().int().min(1).max(10_000).optional(),
+    z.string().min(16).optional(),
   ),
 });
 
@@ -117,6 +135,11 @@ export function validateEnv(
   if (data.NODE_ENV === 'production' && data.MAIL_TRANSPORT === 'memory') {
     throw new InvalidConfigError([
       'MAIL_TRANSPORT: memory is for tests and cannot be used in production',
+    ]);
+  }
+  if (data.NODE_ENV === 'production' && data.PAYMENT_SANDBOX_SECRET) {
+    throw new InvalidConfigError([
+      'PAYMENT_SANDBOX_SECRET: the sandbox payment provider cannot be enabled in production',
     ]);
   }
   return {

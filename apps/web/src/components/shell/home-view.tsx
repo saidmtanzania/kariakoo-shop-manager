@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { SessionInfo, ShopDetails } from '@ksm/shared';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useFormatter, useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { Alert } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
@@ -56,6 +56,12 @@ export function HomeView() {
         <LogoutButton />
       </header>
       <PendingInvitation />
+      {info.activeShopId ? <SubscriptionBanner info={info} /> : null}
+      {info.user.isPlatformAdmin ? (
+        <Button asChild variant="outline">
+          <Link href="/platform">{t('platform')}</Link>
+        </Button>
+      ) : null}
       {info.memberships.length === 0 ? (
         <Card>
           <CardHeader>
@@ -210,11 +216,55 @@ function ActiveShop({ info }: { info: SessionInfo }) {
             <Link href="/team">{t('Home.team')}</Link>
           </Button>
         ) : null}
+        {can(info, 'subscription.read') ? (
+          <Button asChild variant="outline">
+            <Link href="/subscription">{t('Home.subscription')}</Link>
+          </Button>
+        ) : null}
         <Button asChild variant="outline">
           <Link href="/shops/new">{t('Home.newShop')}</Link>
         </Button>
       </CardContent>
     </Card>
+  );
+}
+
+/**
+ * Tells everyone in the shop when the subscription needs attention: the
+ * trial is ending, the grace period has started, or the shop is read-only.
+ * Only people who can pay see the link to pay.
+ */
+function SubscriptionBanner({ info }: { info: SessionInfo }) {
+  const t = useTranslations('Home');
+  const format = useFormatter();
+  const sub = info.subscription;
+  if (!sub) return null;
+  const endsAt = new Date(sub.accessEndsAt);
+  const date = format.dateTime(endsAt, { dateStyle: 'long' });
+  let message: string | null = null;
+  if (sub.status === 'RESTRICTED') message = t('bannerRestricted');
+  else if (sub.status === 'GRACE') message = t('bannerGrace');
+  else if (sub.endingSoon) {
+    message =
+      sub.status === 'TRIALING'
+        ? t('bannerTrialEnding', { date })
+        : t('bannerEnding', { date });
+  }
+  if (!message) return null;
+  return (
+    <Alert
+      variant={sub.status === 'RESTRICTED' ? 'destructive' : 'default'}
+      data-testid="subscription-banner"
+    >
+      {message}{' '}
+      {can(info, 'subscription.read') ? (
+        <Link className="underline" href="/subscription">
+          {t('bannerAction')}
+        </Link>
+      ) : (
+        t('bannerAskOwner')
+      )}
+    </Alert>
   );
 }
 

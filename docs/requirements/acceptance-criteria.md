@@ -41,20 +41,20 @@ Criteria are written as testable statements (Given/When/Then where useful). Each
 - [x] A role containing a permission the actor does not hold cannot be created or assigned by that actor.
 - [x] Platform permissions never appear in the shop catalog and cannot be assigned through shop APIs. *(Also refused by a database trigger.)*
 - [x] Invitation tokens: stored as SHA-256 hashes; expired, revoked, used and email-mismatch tokens are rejected.
-- [x] Seat limit enforced at invite and at acceptance. *(Interim `SEAT_LIMIT` setting until plans exist, decision D-005.)*
+- [x] Seat limit enforced at invite and at acceptance. *(Phase 03 used an interim `SEAT_LIMIT` setting; since Phase 04 the limit comes from the shop's plan.)*
 - [x] Role and membership changes take effect on the next request and are audited.
 - [x] The last owner cannot be removed or demoted.
 
 ## AC-04 Plans and subscriptions
 
-- [ ] Plans (weekly, monthly) are configurable data, not code.
-- [ ] A browser redirect alone never activates a subscription.
-- [ ] Callback with invalid signature → rejected and logged; no state change.
-- [ ] Same callback delivered twice → one payment confirmation.
-- [ ] Delayed callback after expiry → payment applied, subscription extended correctly.
-- [ ] Failed/reversed payment → entitlement not granted / revoked per rule [D-005].
-- [ ] Expired subscription → defined features restricted; all data still readable/exportable [D-005].
-- [ ] Entitlement checks separate from permission checks (both must pass).
+- [x] Plans (weekly, monthly) are configurable data, not code. *(Platform screen and API; no plan or price is in code or seeds.)*
+- [x] A browser redirect alone never activates a subscription. *(Only platform confirmation or a verified provider message confirms a payment; no browser endpoint can.)*
+- [x] Callback with invalid signature → rejected and logged; no state change.
+- [x] Same callback delivered twice → one payment confirmation. *(Also five at once.)*
+- [x] Delayed callback after expiry → payment applied, subscription extended correctly. *(The period starts at confirmation, not back-dated.)*
+- [x] Failed/reversed payment → entitlement not granted / revoked per rule [D-005].
+- [x] Expired subscription → defined features restricted; all data still readable/exportable [D-005]. *(Phase 04 restricts adding staff; later phases mark their own write routes. Export arrives in Phase 09.)*
+- [x] Entitlement checks separate from permission checks (both must pass).
 
 ## AC-05 Products and inventory
 

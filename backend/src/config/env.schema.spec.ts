@@ -81,15 +81,29 @@ describe('validateEnv', () => {
     );
   });
 
-  it('treats an empty seat limit as no limit and validates a set one', () => {
+  it('treats an empty sandbox secret as disabled and refuses it in production', () => {
     expect(
-      validateEnv({ ...valid, SEAT_LIMIT: '' }).SEAT_LIMIT,
+      validateEnv({ ...valid, PAYMENT_SANDBOX_SECRET: '' })
+        .PAYMENT_SANDBOX_SECRET,
     ).toBeUndefined();
-    expect(validateEnv(valid).SEAT_LIMIT).toBeUndefined();
-    expect(validateEnv({ ...valid, SEAT_LIMIT: '5' }).SEAT_LIMIT).toBe(5);
-    expect(() => validateEnv({ ...valid, SEAT_LIMIT: '0' })).toThrow(
-      /SEAT_LIMIT/,
-    );
+    expect(() =>
+      validateEnv({ ...valid, PAYMENT_SANDBOX_SECRET: 'short' }),
+    ).toThrow(/PAYMENT_SANDBOX_SECRET/);
+    expect(() =>
+      validateEnv({
+        ...valid,
+        NODE_ENV: 'production',
+        PAYMENT_SANDBOX_SECRET: 'a-long-enough-sandbox-secret',
+      }),
+    ).toThrow(/cannot be enabled in production/);
+  });
+
+  it('defaults subscription jobs on, every 5 minutes', () => {
+    expect(validateEnv(valid)).toMatchObject({
+      SUBSCRIPTION_JOBS: 'on',
+      SUBSCRIPTION_JOBS_INTERVAL_MS: 300_000,
+      PAYMENT_RECONCILE_AFTER_MINUTES: 10,
+    });
   });
 
   it('defaults the outbox worker on and the rate limit multiplier to 1', () => {

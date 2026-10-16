@@ -89,7 +89,7 @@ Shop financial records (sales, debts, cash), stock and cost data, customer and s
 - Only owners can change owners (`owner_protected`) or appoint and demote them (`@OwnerOnly`, `owner_required`). Removing, suspending or demoting the last active owner answers 409 `last_owner`; these checks run under a lock on the shop row.
 - Shop roles can only hold shop permissions: the API validates codes against the catalog, and a database trigger refuses platform permissions on `role_permissions`.
 - Changing one's own roles or status goes through the same checks, so it can only reduce access. The Team screen hides these actions for the signed-in user.
-- Entitlements (subscription) arrive in Phase 04; "own records only" pairs exist in the catalog (`sales.read`, `sales.read_all`) and are enforced when sales arrive in Phase 07.
+- Entitlements (Phase 04, decision A-022) are checked after permissions and never grant anything: a read-only shop answers 402 `subscription_read_only` on routes marked `@RequireWritable()`; a plan without a feature answers 402 `feature_not_in_plan`. "Own records only" pairs exist in the catalog (`sales.read`, `sales.read_all`) and are enforced when sales arrive in Phase 07.
 
 ## 6. Invitations [C]
 
@@ -101,7 +101,8 @@ Shop financial records (sales, debts, cash), stock and cost data, customer and s
 - The emailed link carries the token in the URL fragment; the accept page removes it from the address bar and keeps it in the tab's session storage while the invitee signs in or registers. Preview (shop name, inviter, email, status) needs only the token.
 - Acceptance needs a signed-in user whose email matches (verified, since unverified users cannot sign in), refuses revoked (410), expired (410) and used (409) invitations, and uses a conditional update so two simultaneous accepts create one membership. A removed member can be invited back; their membership is reactivated with the new roles.
 - Resending is allowed for pending or expired invitations, replaces the token (the old link stops working), restarts the 7 days, and stops after 5 resends (429 `resend_limit`).
-- Seats (decision D-005, interim): members who are not removed plus unexpired pending invitations, against the optional `SEAT_LIMIT`. Checked when inviting, when resending an expired invitation and when accepting (403 `seat_limit_reached`).
+- Seats (decision D-005): members who are not removed plus unexpired pending invitations, against the plan's `seats` limit (no limit during the trial). Checked when inviting, when resending an expired invitation and when accepting (402 `seat_limit_reached`).
+- A read-only shop cannot invite, resend or have an invitation accepted (402 `subscription_read_only`); revoking invitations and suspending or removing staff stay allowed.
 
 ## 7. Financial integrity controls
 
@@ -119,6 +120,16 @@ Shop financial records (sales, debts, cash), stock and cost data, customer and s
 - Never trust redirects or client claims of payment.
 - Provider credentials only in server environment/secret store; never sent to the browser.
 - Amount and currency in callbacks verified against the expected payment.
+
+**As built in Phase 04 (subscriptions; decisions D-006, A-020):**
+
+- A payment changes a shop's access only when platform staff confirm it (manual provider) or a provider's verified callback or status lookup confirms it. There is no endpoint through which a browser can confirm or set a payment status; extra fields are rejected.
+- Callbacks: `POST /api/v1/payments/callbacks/:provider` is public and exempt from the CSRF header (providers cannot send it) and is rate limited per IP. The adapter verifies the signature over the raw request bytes (sandbox: HMAC-SHA256, compared in constant time). Invalid callbacks are stored with `signature_valid = false`, answer 401 and change nothing. Valid ones are stored once per provider event id; repeats answer `duplicate`.
+- Every state change locks the payment row and then the subscription row, so duplicate and concurrent callbacks confirm a payment once and add one period. Amount or currency mismatches, success after failure, failure after confirmation and reversal of an unconfirmed payment are flagged for platform review instead of being applied.
+- Provider requests (start payment, status lookup) happen outside database transactions.
+- Shop-side payment submission needs `subscription.manage`, is rate limited, idempotent per key (same key with different details → 409 `idempotency_conflict`), limited to 3 waiting payments per shop, and stores the plan price at that moment as the amount.
+- The sandbox provider exists only when `PAYMENT_SANDBOX_SECRET` is set; the API refuses to start with it in production.
+- No real provider is integrated, and automatic recurring mobile-money deductions are not supported.
 
 ## 9. Data protection and privacy
 
@@ -156,6 +167,8 @@ Audited actions include: login success/failure (security log), role/permission c
 ## 13. Platform administration [D-022]
 
 Platform admins use a separate admin area and permission scope. Accessing a shop's business data for support should require a logged reason (and optionally owner consent). Policy to be decided.
+
+**As built in Phase 04 (decision A-021):** `users.is_platform_admin` is set only by `pnpm --filter backend platform:admin grant|revoke <email>` (audited); no API can change it, so shop owners cannot make anyone platform staff. Routes declared `@PlatformAdmin()` (plans, billing settings, payment decisions under `/api/v1/platform`) answer 403 `platform_admin_required` to everyone else, checked on every request, so removing the flag takes effect immediately. Platform staff see payments across shops (shop name, reference, payer phone) but get no access to shop business data through this flag. Plan, settings and payment decisions are audited with the operator as actor.
 
 ## 14. Security testing (summary)
 

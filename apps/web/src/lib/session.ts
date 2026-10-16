@@ -50,6 +50,21 @@ export const KNOWN_ERRORS = new Set([
   'resend_limit',
   'seat_limit_reached',
   'shop_suspended',
+  'subscription_read_only',
+  'feature_not_in_plan',
+  'plan_not_found',
+  'plan_code_taken',
+  'duplicate_feature',
+  'payment_reference_used',
+  'reference_required',
+  'idempotency_conflict',
+  'too_many_pending_payments',
+  'payment_method_unavailable',
+  'payment_not_found',
+  'payment_already_decided',
+  'payment_not_pending',
+  'payment_not_confirmed',
+  'platform_admin_required',
 ]);
 
 export function errorKey(err: unknown): string {

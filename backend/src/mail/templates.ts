@@ -96,3 +96,96 @@ export function invitationMessage(
     html: layout(lines, { label: 'Accept invitation', url }),
   };
 }
+
+/** Dates in subscription emails: day, month and year in East Africa Time. */
+function formatDay(date: Date): string {
+  return date.toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+    timeZone: 'Africa/Dar_es_Salaam',
+  });
+}
+
+export function subscriptionExpiringMessage(
+  to: string,
+  shopName: string,
+  endsAt: Date,
+  trial: boolean,
+  url: string,
+): MailMessage {
+  const what = trial ? 'free trial' : 'subscription';
+  const lines = [
+    `The ${what} for ${shopName} ends on ${formatDay(endsAt)}.`,
+    trial
+      ? 'Pay for a plan before then to keep recording sales, purchases and stock. After the trial the shop becomes read-only until you pay; nothing is deleted.'
+      : 'Pay before then to keep full access. After a short grace period the shop becomes read-only until you pay; nothing is deleted.',
+  ];
+  return {
+    to,
+    subject: `${shopName}: your ${what} ends on ${formatDay(endsAt)}`,
+    text: `${lines.join('\n\n')}\n\n${url}\n`,
+    html: layout(lines, { label: 'Open subscription', url }),
+  };
+}
+
+export function subscriptionExpiredMessage(
+  to: string,
+  shopName: string,
+  graceEndsAt: Date | null,
+  url: string,
+): MailMessage {
+  const lines = [
+    graceEndsAt
+      ? `The subscription for ${shopName} has ended. You still have full access until ${formatDay(graceEndsAt)}; after that the shop becomes read-only until you pay.`
+      : `The free trial for ${shopName} has ended, so the shop is now read-only. You can still view and export your records and record customer debt payments.`,
+    'Nothing is deleted. Paying restores full access as soon as the payment is confirmed.',
+  ];
+  return {
+    to,
+    subject: `${shopName}: your subscription has ended`,
+    text: `${lines.join('\n\n')}\n\n${url}\n`,
+    html: layout(lines, { label: 'Pay now', url }),
+  };
+}
+
+export function paymentConfirmedMessage(
+  to: string,
+  shopName: string,
+  planName: string,
+  paidUntil: Date,
+  url: string,
+): MailMessage {
+  const lines = [
+    `We confirmed your payment for ${planName}. ${shopName} is paid until ${formatDay(paidUntil)}.`,
+    'Thank you.',
+  ];
+  return {
+    to,
+    subject: `${shopName}: payment confirmed`,
+    text: `${lines.join('\n\n')}\n\n${url}\n`,
+    html: layout(lines, { label: 'Open subscription', url }),
+  };
+}
+
+export function paymentProblemMessage(
+  to: string,
+  shopName: string,
+  kind: 'failed' | 'reversed',
+  note: string | null,
+  url: string,
+): MailMessage {
+  const lines = [
+    kind === 'failed'
+      ? `A payment for ${shopName} could not be confirmed.`
+      : `A payment for ${shopName} was reversed, so the time it paid for was removed.`,
+    ...(note ? [`Reason: ${note}`] : []),
+    'Check the reference and try again, or contact support if you believe this is wrong.',
+  ];
+  return {
+    to,
+    subject: `${shopName}: payment ${kind === 'failed' ? 'not confirmed' : 'reversed'}`,
+    text: `${lines.join('\n\n')}\n\n${url}\n`,
+    html: layout(lines, { label: 'Open subscription', url }),
+  };
+}

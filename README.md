@@ -2,7 +2,7 @@
 
 A shop-management PWA for wholesalers and retailers in Kariakoo, Dar es Salaam: sales, stock, purchases, customer credit, cashier closing, staff permissions and subscriptions.
 
-> **Status:** Phase 03 (roles, permissions and staff invitations). Accounts, shops, staff invitations, custom roles and the Team screen work; subscriptions come next, then products, stock and sales. See [`docs/migration-status.md`](docs/migration-status.md) for progress and [`AGENTS.md`](AGENTS.md) for the engineering rules every change follows.
+> **Status:** Phase 04 (plans and subscriptions). Accounts, shops, staff invitations, custom roles, the Team screen, free trials, plans and manually confirmed subscription payments work; products and stock come next, then sales. See [`docs/migration-status.md`](docs/migration-status.md) for progress and [`AGENTS.md`](AGENTS.md) for the engineering rules every change follows.
 
 ## Stack
 
@@ -59,6 +59,18 @@ This starts PostgreSQL, a one-off migration job, the API, the web app and Mailpi
 | `pnpm openapi:export` | Writes `docs/api/openapi.json` (run after `pnpm build`) |
 
 Creating a new migration during development: `pnpm --filter backend db:migrate:dev --name <change>`.
+
+## Subscriptions and platform staff
+
+New shops get a 14-day free trial. Shops pay by mobile money to the platform's number and enter the transaction reference on the Subscription page; platform staff confirm it on `/platform`, where they also add plans and set payment instructions. No plan or price exists until platform staff add one. No mobile-money provider is integrated yet, and nothing deducts money automatically.
+
+Platform staff access can only be granted from the command line, by someone with database access (after `pnpm build`):
+
+```bash
+pnpm --filter backend platform:admin grant someone@example.com   # or: revoke
+```
+
+For local testing of provider callbacks, set `PAYMENT_SANDBOX_SECRET` (see `.env.example`); the API refuses it in production.
 
 ## API conventions
 

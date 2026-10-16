@@ -7,6 +7,7 @@ export {
   TENANT_MODELS,
   TenantScopeError,
   type ShopScopedPrisma,
+  type ShopScopedTx,
 } from './tenant-scope.js';
 export {
   Prisma,
@@ -15,6 +16,8 @@ export {
   InvitationStatus,
   MembershipStatus,
   OutboxStatus,
+  PaymentStatus,
+  PlanInterval,
   PermissionScope,
   ShopStatus,
   UserStatus,
@@ -24,9 +27,15 @@ export type {
   AuthToken,
   Invitation,
   OutboxMessage,
+  PaymentEvent,
+  Plan,
+  PlanFeature,
   Role,
   Session,
   Shop,
   ShopMembership,
+  Subscription,
+  SubscriptionPayment,
+  SubscriptionPeriod,
   User,
 } from '../generated/prisma/client.js';

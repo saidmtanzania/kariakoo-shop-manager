@@ -21,6 +21,10 @@ export const TENANT_MODELS = {
   // belong to no shop (sign-up, password reset) are written unscoped with a
   // null shop id.
   OutboxMessage: 'shopId',
+  Subscription: 'shopId',
+  SubscriptionPeriod: 'shopId',
+  SubscriptionPayment: 'shopId',
+  SubscriptionReminder: 'shopId',
 } as const satisfies Partial<Record<Prisma.ModelName, string>>;
 
 /** Models that are not owned by a shop (global identity and infrastructure). */
@@ -30,6 +34,12 @@ export const GLOBAL_MODELS = [
   'AuthToken',
   'RateLimitCounter',
   'Permission',
+  // Platform price list and settings, edited by platform staff only.
+  'Plan',
+  'PlanFeature',
+  'BillingSettings',
+  // Provider callbacks: the shop is known only after the event is verified.
+  'PaymentEvent',
 ] as const satisfies readonly Prisma.ModelName[];
 
 type TenantModel = keyof typeof TENANT_MODELS;
@@ -175,3 +185,8 @@ export function scopedToShop(prisma: PrismaService, shopId: string) {
 }
 
 export type ShopScopedPrisma = ReturnType<typeof scopedToShop>;
+
+/** A transaction opened on a shop-scoped client. */
+export type ShopScopedTx = Parameters<
+  Parameters<ShopScopedPrisma['$transaction']>[0]
+>[0];

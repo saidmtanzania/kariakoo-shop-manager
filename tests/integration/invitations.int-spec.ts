@@ -4,6 +4,7 @@ import { hashToken } from '../../backend/src/common/crypto/tokens.js';
 import { PrismaService } from '../../backend/src/database/prisma.service.js';
 import { MAX_RESENDS } from '../../backend/src/modules/invitations/services/invitations.service.js';
 import { createTestApp } from './helpers/app.js';
+import { insertPlan, makePaid } from './helpers/billing.js';
 import {
   client,
   CSRF,
@@ -393,49 +394,75 @@ describe('Invitations (real PostgreSQL)', () => {
     });
   });
 
-  describe('seat limit', () => {
-    let seats: INestApplication;
-    beforeAll(async () => {
-      seats = await createTestApp({ SEAT_LIMIT: '2' });
-      delete process.env.SEAT_LIMIT;
-    });
-    afterAll(() => seats.close());
-
+  describe('seat limit (from the plan, decision D-005)', () => {
     it('counts members and pending invitations, and frees a seat when one is revoked or expires', async () => {
-      await resetDatabase(seats);
-      const shopOwner = await ownerWithShop(seats, 'seatowner');
+      const shopOwner = await ownerWithShop(app, 'seatowner');
+      await makePaid(
+        app,
+        shopOwner.shopId,
+        await insertPlan(app, { seats: 2 }),
+      );
       const role = await roleId(shopOwner.agent, 'Cashier');
-      const first = await invite(seats, shopOwner.agent, uniqueEmail('seat1'), [
+      const first = await invite(app, shopOwner.agent, uniqueEmail('seat1'), [
         role,
       ]);
 
       const full = await shopOwner.agent
         .post('/api/v1/shops/current/invitations')
         .send({ email: uniqueEmail('seat2'), roleIds: [role] })
-        .expect(403);
+        .expect(402);
       expect(full.body.code).toBe('seat_limit_reached');
 
       await shopOwner.agent
         .post(`/api/v1/shops/current/invitations/${first.invitationId}/revoke`)
         .expect(200);
-      const second = await invite(
-        seats,
-        shopOwner.agent,
-        uniqueEmail('seat3'),
-        [role],
-      );
+      const second = await invite(app, shopOwner.agent, uniqueEmail('seat3'), [
+        role,
+      ]);
 
       // The expired invitation gives its seat back, so a third can be sent;
       // resending the expired one would then go over the limit.
-      await seats.get(PrismaService).invitation.update({
+      await prisma.invitation.update({
         where: { id: second.invitationId },
         data: { expiresAt: new Date(Date.now() - 1000) },
       });
-      await invite(seats, shopOwner.agent, uniqueEmail('seat4'), [role]);
+      await invite(app, shopOwner.agent, uniqueEmail('seat4'), [role]);
       const resend = await shopOwner.agent
         .post(`/api/v1/shops/current/invitations/${second.invitationId}/resend`)
-        .expect(403);
+        .expect(402);
       expect(resend.body.code).toBe('seat_limit_reached');
+    });
+
+    it('is checked again at acceptance, and the trial has no limit', async () => {
+      const shopOwner = await ownerWithShop(app, 'seatacc');
+      const role = await roleId(shopOwner.agent, 'Cashier');
+      // During the trial: no limit.
+      const a = await invite(app, shopOwner.agent, uniqueEmail('seatacc1'), [
+        role,
+      ]);
+      const bEmail = uniqueEmail('seatacc2');
+      const b = await invite(app, shopOwner.agent, bEmail, [role]);
+      // Now on a 2-seat plan: owner + two pending invitations is over the
+      // limit, so the first acceptance is refused until a seat is freed.
+      await makePaid(
+        app,
+        shopOwner.shopId,
+        await insertPlan(app, { seats: 2 }),
+      );
+      const staff = await signedInUser(app, 'seatacc2', bEmail);
+      expect((await accept(staff.agent, b.token).expect(402)).body.code).toBe(
+        'seat_limit_reached',
+      );
+      await shopOwner.agent
+        .post(`/api/v1/shops/current/invitations/${a.invitationId}/revoke`)
+        .expect(200);
+      await accept(staff.agent, b.token).expect(200);
+      // Owner and the new member fill both seats.
+      const third = await shopOwner.agent
+        .post('/api/v1/shops/current/invitations')
+        .send({ email: uniqueEmail('seatacc3'), roleIds: [role] })
+        .expect(402);
+      expect(third.body.code).toBe('seat_limit_reached');
     });
   });
 });
