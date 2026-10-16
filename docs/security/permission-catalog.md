@@ -42,19 +42,19 @@ Columns M, C and S show the default Manager, Cashier and Storekeeper roles that 
 
 | Code | English | Kiswahili | M | C | S | Used by (Phase 03) |
 |---|---|---|---|---|---|---|
-| `products.read` | See products | Kuona bidhaa | ✓ | ✓ | ✓ | Later phase |
-| `products.create` | Add products | Kuongeza bidhaa | ✓ |  | ✓ | Later phase |
-| `products.update` | Edit products | Kuhariri bidhaa | ✓ |  | ✓ | Later phase |
-| `products.archive` | Archive products | Kuhifadhi bidhaa zisizotumika | ✓ |  |  | Later phase |
-| `products.prices.update` | Change prices | Kubadilisha bei | ✓ |  |  | Later phase |
+| `products.read` | See products | Kuona bidhaa | ✓ | ✓ | ✓ | Phase 05 |
+| `products.create` | Add products | Kuongeza bidhaa | ✓ |  | ✓ | Phase 05 |
+| `products.update` | Edit products | Kuhariri bidhaa | ✓ |  | ✓ | Phase 05 |
+| `products.archive` | Archive products | Kuhifadhi bidhaa zisizotumika | ✓ |  |  | Phase 05 |
+| `products.prices.update` | Change prices | Kubadilisha bei | ✓ |  |  | Phase 05 |
 
 ### Stock / Stoo
 
 | Code | English | Kiswahili | M | C | S | Used by (Phase 03) |
 |---|---|---|---|---|---|---|
-| `inventory.read` | See stock | Kuona stoo | ✓ | ✓ | ✓ | Later phase |
-| `inventory.adjust` | Adjust stock | Kurekebisha stoo | ✓ |  | ✓ | Later phase |
-| `inventory.opening` | Enter opening stock | Kuingiza stoo ya mwanzo | ✓ |  |  | Later phase |
+| `inventory.read` | See stock | Kuona stoo | ✓ | ✓ | ✓ | Phase 05 |
+| `inventory.adjust` | Adjust stock | Kurekebisha stoo | ✓ |  | ✓ | Phase 05 |
+| `inventory.opening` | Enter opening stock | Kuingiza stoo ya mwanzo | ✓ |  |  | Phase 05 |
 
 ### Purchases and suppliers / Manunuzi na wasambazaji
 

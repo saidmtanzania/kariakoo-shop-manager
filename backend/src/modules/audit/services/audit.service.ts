@@ -42,7 +42,19 @@ export type AuditAction =
   | 'platform.plan_updated'
   | 'platform.billing_settings_updated'
   | 'platform.admin_granted'
-  | 'platform.admin_revoked';
+  | 'platform.admin_revoked'
+  | 'category.created'
+  | 'category.updated'
+  | 'product.created'
+  | 'product.updated'
+  | 'product.archived'
+  | 'product.restored'
+  | 'product.unit_added'
+  | 'product.unit_updated'
+  | 'product.prices_changed'
+  | 'inventory.opening_recorded'
+  | 'inventory.adjusted'
+  | 'inventory.settings_updated';
 
 export interface AuditEntry {
   action: AuditAction;

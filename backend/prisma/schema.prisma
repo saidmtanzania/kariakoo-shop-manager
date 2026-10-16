@@ -106,16 +106,18 @@ enum ShopStatus {
 
 /// The tenant. Every shop-owned table references it through shop_id.
 model Shop {
-  id           String       @id @db.Uuid
-  name         String       @db.VarChar(120)
-  phone        String?      @db.VarChar(32)
-  address      String?      @db.VarChar(255)
-  businessType BusinessType @default(BOTH) @map("business_type")
-  timezone     String       @default("Africa/Dar_es_Salaam") @db.VarChar(64)
-  currency     String       @default("TZS") @db.Char(3)
-  status       ShopStatus   @default(ACTIVE)
-  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt    DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
+  id                 String       @id @db.Uuid
+  name               String       @db.VarChar(120)
+  phone              String?      @db.VarChar(32)
+  address            String?      @db.VarChar(255)
+  businessType       BusinessType @default(BOTH) @map("business_type")
+  timezone           String       @default("Africa/Dar_es_Salaam") @db.VarChar(64)
+  currency           String       @default("TZS") @db.Char(3)
+  status             ShopStatus   @default(ACTIVE)
+  /// Owner setting (D-007): sales may take stock below zero. Off by default.
+  allowNegativeStock Boolean      @default(false) @map("allow_negative_stock")
+  createdAt          DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   memberships          ShopMembership[]
   sessions             Session[]
@@ -125,6 +127,10 @@ model Shop {
   subscription         Subscription?
   subscriptionPeriods  SubscriptionPeriod[]
   subscriptionPayments SubscriptionPayment[]
+  stockLocations       StockLocation[]
+  productCategories    ProductCategory[]
+  products             Product[]
+  stockAdjustments     StockAdjustment[]
 
   @@map("shops")
 }
@@ -526,4 +532,213 @@ model SubscriptionReminder {
 
   @@id([subscriptionId, kind, dueAt])
   @@map("subscription_reminders")
+}
+
+// ---------------------------------------------------------------------------
+// Products and inventory (Phase 05). docs/architecture/data-model.md
+// sections 5, 6 and 12; decisions D-002, D-003, D-007, D-013, D-021.
+// ---------------------------------------------------------------------------
+
+/// Where stock is kept. One default location per shop for now (D-002); the
+/// column is on every balance and movement so branches can come later.
+model StockLocation {
+  id        String   @id @db.Uuid
+  shopId    String   @map("shop_id") @db.Uuid
+  name      String   @db.VarChar(80)
+  isDefault Boolean  @default(false) @map("is_default")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  shop      Shop            @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  balances  StockBalance[]
+  movements StockMovement[]
+
+  @@unique([shopId, id])
+  @@unique([shopId, name])
+  @@map("stock_locations")
+}
+
+model ProductCategory {
+  id         String    @id @db.Uuid
+  shopId     String    @map("shop_id") @db.Uuid
+  name       String    @db.Citext
+  archivedAt DateTime? @map("archived_at") @db.Timestamptz(3)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  shop     Shop      @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  products Product[]
+
+  @@unique([shopId, id])
+  @@unique([shopId, name])
+  @@map("product_categories")
+}
+
+/// A product. Stock is counted in its base unit (the unit with
+/// is_base = true); other units convert to it.
+model Product {
+  id                    String    @id @db.Uuid
+  shopId                String    @map("shop_id") @db.Uuid
+  categoryId            String?   @map("category_id") @db.Uuid
+  name                  String    @db.VarChar(160)
+  /// Optional shop code; unique within the shop when set.
+  sku                   String?   @db.Citext
+  /// Low-stock alert when the base quantity is at or below this.
+  reorderLevel          Decimal?  @map("reorder_level") @db.Decimal(18, 3)
+  archivedAt            DateTime? @map("archived_at") @db.Timestamptz(3)
+  createdByMembershipId String?   @map("created_by_membership_id") @db.Uuid
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  shop      Shop             @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  category  ProductCategory? @relation(fields: [shopId, categoryId], references: [shopId, id], onDelete: Restrict)
+  units     ProductUnit[]
+  balances  StockBalance[]
+  movements StockMovement[]
+
+  @@unique([shopId, id])
+  @@unique([shopId, sku])
+  @@index([shopId, name])
+  @@index([name(ops: raw("gin_trgm_ops"))], type: Gin, map: "products_name_trgm_idx")
+  @@map("products")
+}
+
+/// A unit a product is counted, bought or sold in ("piece", "carton").
+/// conversion = base units in one of this unit. The conversion and the base
+/// flag never change once created (trigger), so history stays correct.
+model ProductUnit {
+  id             String    @id @db.Uuid
+  shopId         String    @map("shop_id") @db.Uuid
+  productId      String    @map("product_id") @db.Uuid
+  name           String    @db.Citext
+  conversion     Decimal   @db.Decimal(18, 3)
+  isBase         Boolean   @default(false) @map("is_base")
+  /// Whether quantities in this unit may have decimals (D-013, up to 3).
+  allowFraction  Boolean   @default(false) @map("allow_fraction")
+  barcode        String?   @db.VarChar(64)
+  /// Prices per one of this unit, whole shillings stored as numeric(18,2) (D-021).
+  buyingPrice    Decimal?  @map("buying_price") @db.Decimal(18, 2)
+  retailPrice    Decimal?  @map("retail_price") @db.Decimal(18, 2)
+  wholesalePrice Decimal?  @map("wholesale_price") @db.Decimal(18, 2)
+  archivedAt     DateTime? @map("archived_at") @db.Timestamptz(3)
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  product      Product         @relation(fields: [shopId, productId], references: [shopId, id], onDelete: Restrict)
+  priceHistory PriceHistory[]
+  movements    StockMovement[]
+
+  @@unique([shopId, id])
+  @@unique([productId, name])
+  @@unique([shopId, barcode])
+  @@index([shopId, productId])
+  @@map("product_units")
+}
+
+/// Every price set or changed, append-only (trigger).
+model PriceHistory {
+  id                    String   @id @db.Uuid
+  shopId                String   @map("shop_id") @db.Uuid
+  productUnitId         String   @map("product_unit_id") @db.Uuid
+  buyingPrice           Decimal? @map("buying_price") @db.Decimal(18, 2)
+  retailPrice           Decimal? @map("retail_price") @db.Decimal(18, 2)
+  wholesalePrice        Decimal? @map("wholesale_price") @db.Decimal(18, 2)
+  changedByMembershipId String?  @map("changed_by_membership_id") @db.Uuid
+  changedAt             DateTime @default(now()) @map("changed_at") @db.Timestamptz(3)
+
+  unit ProductUnit @relation(fields: [shopId, productUnitId], references: [shopId, id], onDelete: Restrict)
+
+  @@index([shopId, productUnitId, changedAt])
+  @@map("price_history")
+}
+
+/// Current stock of a product at a location, in base units. Changed only by
+/// the inventory service, always together with a stock movement; the
+/// reconciliation check compares it with the sum of movements.
+model StockBalance {
+  shopId      String   @map("shop_id") @db.Uuid
+  productId   String   @map("product_id") @db.Uuid
+  locationId  String   @map("location_id") @db.Uuid
+  quantity    Decimal  @default(0) @db.Decimal(18, 3)
+  /// Weighted-average cost per base unit (D-003), 4 decimals.
+  averageCost Decimal  @default(0) @map("average_cost") @db.Decimal(18, 4)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  product  Product       @relation(fields: [shopId, productId], references: [shopId, id], onDelete: Restrict)
+  location StockLocation @relation(fields: [shopId, locationId], references: [shopId, id], onDelete: Restrict)
+
+  @@id([shopId, productId, locationId])
+  @@map("stock_balances")
+}
+
+enum StockMovementType {
+  OPENING
+  ADJUSTMENT_IN
+  ADJUSTMENT_OUT
+}
+
+enum AdjustmentReason {
+  COUNT_CORRECTION
+  DAMAGED
+  EXPIRED
+  LOST
+  FOUND
+  OWN_USE
+  OTHER
+}
+
+/// A stock adjustment request (WF-06). Its stock change is the movement
+/// that points at it. Append-only.
+model StockAdjustment {
+  id                    String           @id @db.Uuid
+  shopId                String           @map("shop_id") @db.Uuid
+  reason                AdjustmentReason
+  note                  String?          @db.VarChar(500)
+  idempotencyKey        String           @map("idempotency_key") @db.VarChar(80)
+  /// Hash of the request, so a reused key with different content is refused.
+  requestHash           String           @map("request_hash") @db.Char(64)
+  createdByMembershipId String           @map("created_by_membership_id") @db.Uuid
+  createdAt             DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  shop      Shop            @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  movements StockMovement[]
+
+  @@unique([shopId, id])
+  @@unique([shopId, idempotencyKey])
+  @@map("stock_adjustments")
+}
+
+/// The stock ledger: every change to a balance, signed, in base units, with
+/// the unit and conversion as entered. Append-only (trigger).
+model StockMovement {
+  id                    String            @id @db.Uuid
+  shopId                String            @map("shop_id") @db.Uuid
+  productId             String            @map("product_id") @db.Uuid
+  locationId            String            @map("location_id") @db.Uuid
+  type                  StockMovementType
+  /// Signed change in base units (+ in, - out).
+  quantity              Decimal           @db.Decimal(18, 3)
+  /// Balance after this movement, for history and reconciliation.
+  balanceAfter          Decimal           @map("balance_after") @db.Decimal(18, 3)
+  /// Cost per base unit used for this movement (D-003).
+  unitCost              Decimal           @map("unit_cost") @db.Decimal(18, 4)
+  /// Unit, quantity and conversion as entered (snapshot). For a stock count
+  /// the quantity is the counted amount, which may be zero.
+  unitId                String            @map("unit_id") @db.Uuid
+  unitName              String            @map("unit_name") @db.VarChar(40)
+  unitQuantity          Decimal           @map("unit_quantity") @db.Decimal(18, 3)
+  conversion            Decimal           @db.Decimal(18, 3)
+  adjustmentId          String?           @map("adjustment_id") @db.Uuid
+  reason                AdjustmentReason?
+  note                  String?           @db.VarChar(500)
+  createdByMembershipId String            @map("created_by_membership_id") @db.Uuid
+  createdAt             DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  product    Product          @relation(fields: [shopId, productId], references: [shopId, id], onDelete: Restrict)
+  location   StockLocation    @relation(fields: [shopId, locationId], references: [shopId, id], onDelete: Restrict)
+  unit       ProductUnit      @relation(fields: [shopId, unitId], references: [shopId, id], onDelete: Restrict)
+  adjustment StockAdjustment? @relation(fields: [shopId, adjustmentId], references: [shopId, id], onDelete: Restrict)
+
+  @@index([shopId, productId, createdAt])
+  @@index([shopId, createdAt])
+  @@map("stock_movements")
 }

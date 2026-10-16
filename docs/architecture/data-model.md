@@ -127,6 +127,28 @@ Tenant classification: `subscriptions`, `subscription_periods`, `subscription_pa
 
 **Invariant:** for every (shop, product, location): `stock_balances.quantity = Σ stock_movements.quantity`. Checked by a nightly reconciliation job and in tests.
 
+### Implemented in Phase 05 (migration `20261016073000_products_and_inventory`)
+
+The design in sections 5 and 6 changed in these ways when built (decisions D-002, D-003, D-007, D-013, D-021, A-023 to A-026):
+
+| Table | As built |
+|---|---|
+| `shops` | New column `allow_negative_stock` (default false, D-007), changed only by an owner. |
+| `stock_locations` | `id`, `shop_id`, `name` (unique per shop), `is_default`, `created_at`. Every new shop gets a default location "Main" in the same transaction; the migration adds one for each existing shop. Phase 05 uses only the default location (D-002). |
+| `product_categories` | `id`, `shop_id`, `name` (citext, unique per shop), `archived_at`, timestamps. No `parent_id`: categories are one level until needed. |
+| `products` | `id`, `shop_id`, `category_id`, `name` (≤ 160), `sku` (citext, unique per shop when set), `reorder_level` numeric(18,3) ≥ 0 in base units, `archived_at`, `created_by_membership_id`, timestamps. No `base_unit_name` or `track_stock`: the base unit is the `product_units` row with `is_base`, and every product tracks stock. Name search uses a trigram GIN index (`pg_trgm`). Trigger `products_no_delete`. |
+| `product_units` | `id`, `shop_id`, `product_id`, `name` (citext, unique per product), `conversion` numeric(18,3) > 0 (base unit = 1), `is_base`, `allow_fraction` (D-013), `barcode` (unique per shop when set), `buying_price`, `retail_price`, `wholesale_price` numeric(18,2), whole shillings ≥ 0 (D-021), `archived_at`, timestamps. No `is_sellable` / `is_purchasable` yet. Trigger `product_units_fixed_fields`: no delete; `conversion`, `is_base`, `product_id` and `shop_id` never change; one base unit per product. |
+| `price_history` | `id`, `shop_id`, `product_unit_id`, `buying_price`, `retail_price`, `wholesale_price`, `changed_by_membership_id`, `changed_at`. One row per price change, including the first prices. Append-only. |
+| `stock_balances` | pk(`shop_id`, `product_id`, `location_id`), `quantity` numeric(18,3) in base units, `average_cost` numeric(18,4) ≥ 0 per base unit (D-003), `updated_at`. No `version` column: changes take a row lock (A-006). No `quantity >= 0` check, because D-007 lets an owner allow sales below zero; the ledger service enforces the rule. |
+| `stock_adjustments` | `id`, `shop_id`, `reason` (`COUNT_CORRECTION`, `DAMAGED`, `EXPIRED`, `LOST`, `FOUND`, `OWN_USE`, `OTHER`), `note`, `idempotency_key` (unique per shop), `request_hash` (SHA-256 of the request, so the same key with different details is refused), `created_by_membership_id`, `created_at`. Append-only. |
+| `stock_movements` | `id`, `shop_id`, `product_id`, `location_id`, `type` (Phase 05: `OPENING`, `ADJUSTMENT_IN`, `ADJUSTMENT_OUT`; later phases add their own), `quantity` (signed, base units, never 0; sign must match the type), `balance_after`, `unit_cost` per base unit, the entered `unit_id`, `unit_name`, `unit_quantity` and `conversion` (snapshot), `adjustment_id` and `reason` (required for adjustments), `note`, `created_by_membership_id`, `created_at`. Append-only. Indexes (`shop_id`, `product_id`, `created_at`) and (`shop_id`, `created_at`). |
+
+Quantities are `numeric(18,3)`; money is `numeric(18,2)`; average cost is `numeric(18,4)`. The API sends all of them as decimal strings, and code does the arithmetic on scaled integers (`packages/shared/src/decimal.ts`), never on floating-point numbers.
+
+The invariant above is checked on demand by `GET /api/v1/shops/current/inventory/reconciliation` and in tests. The nightly job arrives with operations work (Phase 11).
+
+Tenant classification: all eight tables are shop-owned and go through the shop-scoped client.
+
 ## 7. Procurement
 
 | Entity | Key fields | Notes |

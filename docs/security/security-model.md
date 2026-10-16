@@ -113,6 +113,15 @@ Shop financial records (sales, debts, cash), stock and cost data, customer and s
 - Database CHECK/UNIQUE constraints backing invariants.
 - Nightly reconciliation: balances vs ledgers; mismatches alert the platform operator.
 
+**As built in Phase 05 (products and inventory; decisions D-007, D-013, D-021, A-006, A-023 to A-026):**
+
+- Stock changes only through `StockLedgerService`, which locks the balance row, checks the result and writes the movement in one transaction. An architecture test fails if any other file writes stock tables. Movements, adjustments and price history are append-only and products and units cannot be deleted (database triggers).
+- Adjustments need `inventory.adjust`, a reason (and a note for "Other"), and an idempotency key; the same key with different details answers 409 `idempotency_conflict`. Opening stock needs `inventory.opening`. Every adjustment, opening stock, price change, product change and the negative-stock setting are audited with the actor.
+- Adjustments never take stock below zero. Only an owner can allow sales below zero (D-007), and the setting is audited.
+- Buying prices and average cost are returned only to people with `products.prices.update` or `reports.profit.read` (A-023); entering them without that access is refused.
+- All product and stock routes resolve the shop from the session and use the shop-scoped client. Tests use another shop's product, unit and category ids on every route and get 404 with nothing changed. Stock write routes are refused when the shop is read-only (402).
+- Search terms are passed as query parameters, and `%` and `_` are escaped, so a search cannot change the query or match everything.
+
 ## 8. Payment-provider security
 
 - Callback endpoints verify provider signature/HMAC or shared secret and, where documented, source IPs; reject and log failures.

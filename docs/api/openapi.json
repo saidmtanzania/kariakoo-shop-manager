@@ -729,6 +729,170 @@
         ]
       }
     },
+    "/api/v1/shops/current/inventory/summary": {
+      "get": {
+        "operationId": "InventoryController_summary_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "inventory"
+        ]
+      }
+    },
+    "/api/v1/shops/current/inventory/movements": {
+      "get": {
+        "operationId": "InventoryController_movements_v1",
+        "parameters": [
+          {
+            "name": "productId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "inventory"
+        ]
+      }
+    },
+    "/api/v1/shops/current/inventory/adjustments": {
+      "post": {
+        "operationId": "InventoryController_adjust_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AdjustmentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "inventory"
+        ]
+      }
+    },
+    "/api/v1/shops/current/products/{productId}/opening-stock": {
+      "post": {
+        "operationId": "InventoryController_opening_v1",
+        "parameters": [
+          {
+            "name": "productId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OpeningStockDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "inventory"
+        ]
+      }
+    },
+    "/api/v1/shops/current/inventory/reconciliation": {
+      "get": {
+        "operationId": "InventoryController_reconciliation_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "inventory"
+        ]
+      }
+    },
+    "/api/v1/shops/current/inventory/settings": {
+      "get": {
+        "operationId": "InventoryController_settings_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "inventory"
+        ]
+      },
+      "put": {
+        "operationId": "InventoryController_updateSettings_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InventorySettingsDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "inventory"
+        ]
+      }
+    },
     "/api/v1/shops/current/invitations": {
       "get": {
         "operationId": "ShopInvitationsController_list_v1",
@@ -1044,6 +1208,384 @@
         },
         "tags": [
           "platform"
+        ]
+      }
+    },
+    "/api/v1/shops/current/products": {
+      "get": {
+        "operationId": "ProductsController_list_v1",
+        "parameters": [
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "maxLength": 100,
+              "type": "string"
+            }
+          },
+          {
+            "name": "categoryId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "archived",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "stock",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "low",
+                "out",
+                "negative"
+              ]
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "products"
+        ]
+      },
+      "post": {
+        "operationId": "ProductsController_create_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProductDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "products"
+        ]
+      }
+    },
+    "/api/v1/shops/current/products/{productId}": {
+      "get": {
+        "operationId": "ProductsController_get_v1",
+        "parameters": [
+          {
+            "name": "productId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "products"
+        ]
+      },
+      "patch": {
+        "operationId": "ProductsController_update_v1",
+        "parameters": [
+          {
+            "name": "productId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProductDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "products"
+        ]
+      }
+    },
+    "/api/v1/shops/current/products/{productId}/archive": {
+      "post": {
+        "operationId": "ProductsController_archive_v1",
+        "parameters": [
+          {
+            "name": "productId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "products"
+        ]
+      }
+    },
+    "/api/v1/shops/current/products/{productId}/restore": {
+      "post": {
+        "operationId": "ProductsController_restore_v1",
+        "parameters": [
+          {
+            "name": "productId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "products"
+        ]
+      }
+    },
+    "/api/v1/shops/current/products/{productId}/units": {
+      "post": {
+        "operationId": "ProductsController_addUnit_v1",
+        "parameters": [
+          {
+            "name": "productId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UnitDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "products"
+        ]
+      }
+    },
+    "/api/v1/shops/current/products/{productId}/units/{unitId}": {
+      "patch": {
+        "operationId": "ProductsController_updateUnit_v1",
+        "parameters": [
+          {
+            "name": "productId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "unitId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateUnitDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "products"
+        ]
+      }
+    },
+    "/api/v1/shops/current/products/{productId}/units/{unitId}/prices": {
+      "put": {
+        "operationId": "ProductsController_setPrices_v1",
+        "parameters": [
+          {
+            "name": "productId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "unitId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PricesDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "products"
+        ]
+      }
+    },
+    "/api/v1/shops/current/product-categories": {
+      "get": {
+        "operationId": "ProductsController_listCategories_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "products"
+        ]
+      },
+      "post": {
+        "operationId": "ProductsController_createCategory_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CategoryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "products"
+        ]
+      }
+    },
+    "/api/v1/shops/current/product-categories/{categoryId}": {
+      "patch": {
+        "operationId": "ProductsController_updateCategory_v1",
+        "parameters": [
+          {
+            "name": "categoryId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCategoryDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "products"
         ]
       }
     }
@@ -1507,6 +2049,96 @@
           }
         }
       },
+      "AdjustmentDto": {
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "unitId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "add",
+              "remove",
+              "count"
+            ]
+          },
+          "quantity": {
+            "type": "string",
+            "example": "2"
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "COUNT_CORRECTION",
+              "DAMAGED",
+              "EXPIRED",
+              "LOST",
+              "FOUND",
+              "OWN_USE",
+              "OTHER"
+            ]
+          },
+          "note": {
+            "type": "object",
+            "maxLength": 500
+          },
+          "unitCost": {
+            "type": "object",
+            "example": "21600"
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 80
+          }
+        },
+        "required": [
+          "productId",
+          "unitId",
+          "kind",
+          "quantity",
+          "reason",
+          "idempotencyKey"
+        ]
+      },
+      "OpeningStockDto": {
+        "type": "object",
+        "properties": {
+          "unitId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "quantity": {
+            "type": "string",
+            "example": "24"
+          },
+          "unitCost": {
+            "type": "object",
+            "example": "21600"
+          }
+        },
+        "required": [
+          "unitId",
+          "quantity"
+        ]
+      },
+      "InventorySettingsDto": {
+        "type": "object",
+        "properties": {
+          "allowNegativeStock": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "allowNegativeStock"
+        ]
+      },
       "CreateInvitationDto": {
         "type": "object",
         "properties": {
@@ -1578,6 +2210,240 @@
           "note": {
             "type": "string",
             "maxLength": 500
+          }
+        }
+      },
+      "BaseUnitDto": {
+        "type": "object",
+        "properties": {
+          "buyingPrice": {
+            "type": "string",
+            "nullable": true,
+            "example": "21600"
+          },
+          "retailPrice": {
+            "type": "string",
+            "nullable": true,
+            "example": "24000"
+          },
+          "wholesalePrice": {
+            "type": "string",
+            "nullable": true,
+            "example": "23000"
+          },
+          "name": {
+            "type": "string",
+            "example": "piece",
+            "maxLength": 40
+          },
+          "allowFraction": {
+            "type": "boolean",
+            "default": false
+          },
+          "barcode": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 64
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UnitDto": {
+        "type": "object",
+        "properties": {
+          "buyingPrice": {
+            "type": "string",
+            "nullable": true,
+            "example": "21600"
+          },
+          "retailPrice": {
+            "type": "string",
+            "nullable": true,
+            "example": "24000"
+          },
+          "wholesalePrice": {
+            "type": "string",
+            "nullable": true,
+            "example": "23000"
+          },
+          "name": {
+            "type": "string",
+            "example": "piece",
+            "maxLength": 40
+          },
+          "allowFraction": {
+            "type": "boolean",
+            "default": false
+          },
+          "barcode": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 64
+          },
+          "conversion": {
+            "type": "string",
+            "example": "12"
+          }
+        },
+        "required": [
+          "name",
+          "conversion"
+        ]
+      },
+      "InitialStockDto": {
+        "type": "object",
+        "properties": {
+          "unitName": {
+            "type": "string",
+            "example": "carton"
+          },
+          "quantity": {
+            "type": "string",
+            "example": "2"
+          },
+          "unitCost": {
+            "type": "string",
+            "nullable": true,
+            "example": "21600"
+          }
+        },
+        "required": [
+          "unitName",
+          "quantity"
+        ]
+      },
+      "CreateProductDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 160
+          },
+          "categoryId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "sku": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 40
+          },
+          "reorderLevel": {
+            "type": "string",
+            "nullable": true,
+            "example": "24"
+          },
+          "baseUnit": {
+            "$ref": "#/components/schemas/BaseUnitDto"
+          },
+          "units": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UnitDto"
+            }
+          },
+          "openingStock": {
+            "nullable": true,
+            "type": "object",
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/InitialStockDto"
+              }
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "baseUnit"
+        ]
+      },
+      "UpdateProductDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 160
+          },
+          "categoryId": {
+            "type": "string",
+            "format": "uuid",
+            "nullable": true
+          },
+          "sku": {
+            "type": "string",
+            "nullable": true,
+            "maxLength": 40
+          },
+          "reorderLevel": {
+            "type": "string",
+            "nullable": true,
+            "example": "24"
+          }
+        }
+      },
+      "UpdateUnitDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 40
+          },
+          "barcode": {
+            "type": "string",
+            "nullable": true
+          },
+          "allowFraction": {
+            "type": "boolean"
+          },
+          "archived": {
+            "type": "boolean"
+          }
+        }
+      },
+      "PricesDto": {
+        "type": "object",
+        "properties": {
+          "buyingPrice": {
+            "type": "string",
+            "nullable": true,
+            "example": "21600"
+          },
+          "retailPrice": {
+            "type": "string",
+            "nullable": true,
+            "example": "24000"
+          },
+          "wholesalePrice": {
+            "type": "string",
+            "nullable": true,
+            "example": "23000"
+          }
+        }
+      },
+      "CategoryDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 60
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UpdateCategoryDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 60
+          },
+          "archived": {
+            "type": "boolean"
           }
         }
       }
