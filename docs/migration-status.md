@@ -2,18 +2,18 @@
 
 | Field | Value |
 |---|---|
-| Last updated | 2026-10-16 (Phase 05) |
+| Last updated | 2026-10-16 (Phase 06) |
 
 ## Current state
 
 | Item | State |
 |---|---|
 | Repository | pnpm workspace: `apps/web`, `backend`, `packages/shared`, `tests` |
-| Application code | Health endpoints; sign-in, registration, email confirmation, password recovery; shops and active-shop switching; permissions, custom roles, member management, staff invitations, the audit log list and an email outbox; plans, shop subscriptions (trial, grace, read-only), manual subscription payments with platform confirmation, a payment provider adapter with signed callbacks and reconciliation, expiry reminders; web screens for all of these, including Team, invitation acceptance, Subscription and Platform admin; products with categories, units, conversions and prices; a stock ledger with opening stock, adjustments, weighted-average cost, reconciliation, low-stock alerts and the owner's negative-stock setting; Products and Inventory screens. No purchases or sales. |
-| Prisma schema | 30 models: users, sessions, auth_tokens, shops, shop_memberships, audit_logs, rate_limit_counters, permissions, roles, role_permissions, membership_roles, invitations, invitation_roles, outbox_messages, plans, plan_features, billing_settings, subscriptions, subscription_periods, subscription_payments, payment_events, subscription_reminders, stock_locations, product_categories, products, product_units, price_history, stock_balances, stock_adjustments, stock_movements |
-| Migrations | 5 written, all applied to a clean database (see history) |
+| Application code | Health endpoints; sign-in, registration, email confirmation, password recovery; shops and active-shop switching; permissions, custom roles, member management, staff invitations, the audit log list and an email outbox; plans, shop subscriptions (trial, grace, read-only), manual subscription payments with platform confirmation, a payment provider adapter with signed callbacks and reconciliation, expiry reminders; web screens for all of these, including Team, invitation acceptance, Subscription and Platform admin; products with categories, units, conversions and prices; a stock ledger with opening stock, adjustments, weighted-average cost, reconciliation, low-stock alerts and the owner's negative-stock setting; Products and Inventory screens; suppliers with an append-only ledger, payments and reversals; purchases saved as drafts and received into stock at landed cost, with cancellation; Suppliers and Purchases screens. No sales. |
+| Prisma schema | 37 models: users, sessions, auth_tokens, shops, shop_memberships, audit_logs, rate_limit_counters, permissions, roles, role_permissions, membership_roles, invitations, invitation_roles, outbox_messages, plans, plan_features, billing_settings, subscriptions, subscription_periods, subscription_payments, payment_events, subscription_reminders, stock_locations, product_categories, products, product_units, price_history, stock_balances, stock_adjustments, stock_movements, shop_counters, suppliers, purchases, purchase_lines, purchase_charges, supplier_payments, supplier_ledger_entries |
+| Migrations | 6 written, all applied to a clean database (see history) |
 | Databases | Local Docker Compose PostgreSQL 17 only; no hosted environments |
-| CI | GitHub Actions. Phase 01 (PR #1) and Phase 02 (PR #2) passed on GitHub and were merged on 2026-10-15. PR #1 merged into `main`; PR #2 merged into `phase-01-dev-environment`; PR #3 brought Phases 02 and 03 into `main`; PR #4 (Phase 04) was merged into `main` on 2026-10-16. |
+| CI | GitHub Actions. Phase 01 (PR #1) and Phase 02 (PR #2) passed on GitHub and were merged on 2026-10-15. PR #1 merged into `main`; PR #2 merged into `phase-01-dev-environment`; PR #3 brought Phases 02 and 03 into `main`; PR #4 (Phase 04) and PR #5 (Phase 05) were merged into `main` on 2026-10-16. |
 
 ## Phase log
 
@@ -24,8 +24,9 @@
 | 02 Authentication and shop isolation | **Merged** (PR #2, into `phase-01-dev-environment`) | 2026-10-15 | Verification record below, `docs/phase-02-report.md` |
 | 03 Dynamic RBAC and invitations | **Merged** (PR #3 into `main`) | 2026-10-15 | Verification record below, `docs/phase-03-report.md` |
 | 04 Plans and subscriptions | **Merged** (PR #4 into `main`) | 2026-10-16 | Verification record below, `docs/phase-04-report.md` |
-| 05 Products and inventory | **Implemented and verified locally; awaiting owner acceptance** | 2026-10-16 | Verification record below, `docs/phase-05-report.md` |
-| 06–12 | Not started | — | — |
+| 05 Products and inventory | **Merged** (PR #5 into `main`) | 2026-10-16 | Verification record below, `docs/phase-05-report.md` |
+| 06 Suppliers and purchases | **Implemented and verified locally; awaiting owner acceptance** | 2026-10-16 | Verification record below, `docs/phase-06-report.md` |
+| 07–12 | Not started | — | — |
 
 ## Phase 00 record
 
@@ -149,6 +150,42 @@ Additional checks on 2026-10-15:
 - Delivery through a real email provider: only Mailpit was used.
 - Behaviour with several API instances running the outbox worker at once is covered by one integration test (two app instances draining together), not by a multi-container run.
 
+## Phase 06 verification record
+
+Run on 2026-10-16 from a fresh `git clone` of commit `c5cef9a` (branch `phase-06-suppliers-purchases`) into an empty directory, with `.env` copied from `.env.example` and pointed at a brand-new database (`ksm_verify06`). Same environment as Phase 04. Only `DATABASE_URL`, `WEB_ORIGIN` and `API_INTERNAL_URL` were exported. Only the documents recording these results were written afterwards.
+
+| # | Command | Result |
+|---|---|---|
+| 1 | `pnpm install --frozen-lockfile` | exit 0 |
+| 2 | `pnpm format:check` | exit 0 |
+| 3 | `pnpm --filter @ksm/shared build` | exit 0 |
+| 4 | `pnpm lint` | exit 0; no warnings or errors |
+| 5 | `pnpm typecheck` | exit 0 (all 4 packages) |
+| 6 | `pnpm test` | exit 0; shared 67/67, backend 31/31, web 23/23 passed |
+| 7 | `pnpm test:architecture` | exit 0; no violations (206 modules, 887 dependencies) |
+| 8 | `pnpm db:migrate` | exit 0; all six migrations applied to the empty database |
+| 9 | `pnpm --filter backend db:check-drift` | exit 0; no difference detected |
+| 10 | `pnpm test:integration` | exit 0; 259/259 passed against real PostgreSQL (221 before this phase) |
+| 11 | `pnpm build` | exit 0 |
+| 12 | `pnpm test:e2e` | exit 0; 26/26 passed (13 tests on desktop and Pixel 7 Chromium), API in production mode sending real SMTP to Mailpit |
+| 13 | `pnpm openapi:export` | exit 0; identical to the committed `docs/api/openapi.json` |
+| 14 | `git status --porcelain` | clean |
+
+Additional checks on 2026-10-16:
+
+| Check | Result |
+|---|---|
+| Negative test: "already received" check removed | 2 integration tests failed, as intended; change reverted |
+| Negative test: cost-access check on writing a purchase removed | 1 integration test failed, as intended; change reverted |
+| Negative test: supplier row lock removed | 1 integration test (payments at the same time) failed, as intended; change reverted |
+| Negative test: purchase read without the shop scope | 1 integration test (tenant isolation) failed, as intended; change reverted |
+| Migration on top of a Phase 05 database with test data (24 shops, 23 products, 8 movements, 6 balances) | applied cleanly; row counts and the sum of balances unchanged; the replaced movement-direction check validated against existing rows |
+
+### Not verified (Phase 06)
+
+- GitHub Actions has not run Phase 06 yet; it runs when the PR opens.
+- The Docker Compose full stack was not rebuilt for this phase; the new migration was applied with `prisma migrate deploy`, which is what the compose migrate job runs.
+
 ## Phase 05 verification record
 
 Run on 2026-10-16 from a fresh `git clone` of commit `aa03c45` (branch `phase-05-products-inventory`) into an empty directory, with `.env` copied from `.env.example` and pointed at a brand-new database (`ksm_verify05`). Same environment as Phase 04. Only `DATABASE_URL`, `WEB_ORIGIN` and `API_INTERNAL_URL` were exported.
@@ -182,7 +219,7 @@ Additional checks on 2026-10-16:
 
 ### Not verified (Phase 05)
 
-- GitHub Actions has not run Phase 05 yet; it runs when the PR opens.
+- GitHub Actions had not run Phase 05 when this record was written; it passed on PR #5, which was merged on 2026-10-16.
 - The Docker Compose full stack was not rebuilt for this phase.
 
 ## Phase 04 verification record
@@ -232,3 +269,4 @@ Additional checks on 2026-10-16:
 | 3 | `20261015063853_rbac_and_invitations` | 03 | Yes, 2026-10-15 (clean clone database and compose migrate job) | Enums `PermissionScope`, `InvitationStatus`, `OutboxStatus`; tables `permissions` (48 rows inserted), `roles`, `role_permissions`, `membership_roles`, `invitations`, `invitation_roles`, `outbox_messages`; trigger `role_permissions_shop_scope_only`. Additive only. Existing shops get no default roles (only shops created after the migration do); there are no production shops yet. |
 | 4 | `20261016060401_subscriptions` | 04 | Yes, 2026-10-16 (clean clone database and compose migrate job) | Enums `PlanInterval`, `PaymentStatus`; tables `plans`, `plan_features`, `billing_settings` (1 row: 14-day trial, reminders 3 days before), `subscriptions`, `subscription_periods`, `subscription_payments`, `payment_events`, `subscription_reminders`; check constraints; triggers `subscription_periods_append_only` and `payment_events_no_delete`. Additive only. Every existing shop gets a 14-day trial starting when the migration runs. No plans are inserted. |
 | 5 | `20261016073000_products_and_inventory` | 05 | Yes, 2026-10-16 (clean clone database; also on top of a Phase 04 database with existing shops) | Extension `pg_trgm`; column `shops.allow_negative_stock` (default false); enums `StockMovementType`, `AdjustmentReason`; tables `stock_locations`, `product_categories`, `products`, `product_units`, `price_history`, `stock_balances`, `stock_adjustments`, `stock_movements`; check constraints; triggers `product_units_fixed_fields`, `products_no_delete`, and append-only triggers on movements, adjustments and price history. Additive only. Every existing shop gets a default "Main" location. No products are inserted. |
+| 6 | `20261016140000_suppliers_and_purchases` | 06 | Yes, 2026-10-16 (clean clone database; also on top of a Phase 05 database with test data) | Enums `PurchaseStatus`, `SupplierEntryType`, `SupplierPaymentMethod`; new values `PURCHASE_RECEIPT` and `PURCHASE_REVERSAL` in `StockMovementType`; column `stock_movements.purchase_id`; tables `shop_counters`, `suppliers`, `purchases`, `purchase_lines`, `purchase_charges`, `supplier_payments`, `supplier_ledger_entries`; check constraints (whole-shilling amounts, totals add up, status fields, ledger signs and references; the movement-direction check is replaced to cover the new types); triggers `suppliers_no_delete`, `supplier_ledger_entries_append_only`, `supplier_payments_reverse_only`, `purchases_status_flow`, `purchase_parts_draft_only`. Additive only. No data is inserted. |

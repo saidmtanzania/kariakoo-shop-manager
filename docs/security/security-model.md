@@ -122,6 +122,14 @@ Shop financial records (sales, debts, cash), stock and cost data, customer and s
 - All product and stock routes resolve the shop from the session and use the shop-scoped client. Tests use another shop's product, unit and category ids on every route and get 404 with nothing changed. Stock write routes are refused when the shop is read-only (402).
 - Search terms are passed as query parameters, and `%` and `_` are escaped, so a search cannot change the query or match everything.
 
+**As built in Phase 06 (suppliers and purchases; decisions D-014, D-015, A-027 to A-031):**
+
+- Supplier balances change only through `SupplierLedgerService`, which locks the supplier row and writes an append-only ledger entry with the balance after it. An architecture test fails if another service writes them. Suppliers cannot be deleted; payments can only be marked reversed once; received purchases and their lines cannot change except to be cancelled (database triggers).
+- Creating a draft and recording a payment carry idempotency keys checked against a hash of the request; receiving and cancelling lock the purchase row and check its status, so retries and double clicks apply once. A payment is never more than the balance, checked under the supplier lock.
+- Purchase amounts and supplier balances are returned only to people who can see costs (A-030); a storekeeper can receive goods without seeing what they cost. Writing a purchase needs cost access as well as `purchases.create`; paying while receiving needs `supplier_payments.create`.
+- All supplier and purchase routes resolve the shop from the session and use the shop-scoped client; raw row locks also filter by shop. Tests use another shop's supplier, payment, purchase and product ids and get 404 with nothing changed. Supplier and purchase writes are refused when the shop is read-only (402); payments and reversals stay allowed (A-028).
+- Supplier changes, payments, reversals and every purchase step (created, changed, received, cancelled) are audited with the actor.
+
 ## 8. Payment-provider security
 
 - Callback endpoints verify provider signature/HMAC or shared secret and, where documented, source IPs; reject and log failures.

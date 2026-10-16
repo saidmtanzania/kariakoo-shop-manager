@@ -160,6 +160,27 @@ Tenant classification: all eight tables are shop-owned and go through the shop-s
 | **supplier_payments** | id, shop_id, supplier_id, amount, method, reference, cash_session_id (nullable), idempotency_key | |
 | **supplier_payment_allocations** | id, shop_id, supplier_payment_id, purchase_id, amount | Σ ≤ payment amount; Σ per purchase ≤ purchase outstanding. |
 
+### Implemented in Phase 06 (migration `20261016140000_suppliers_and_purchases`)
+
+The design above changed in these ways when built (decisions D-014, D-015, D-021, A-027 to A-031):
+
+| Table | As built |
+|---|---|
+| `shop_counters` | pk(`shop_id`, `key`), `value` > 0. Per-shop running numbers; `key = 'purchase'` numbers purchases 1, 2, 3… (`INSERT … ON CONFLICT DO UPDATE … RETURNING`). |
+| `suppliers` | `id`, `shop_id`, `name` (citext, unique per shop), `phone`, `address`, `note`, `balance` numeric(18,2) (what the shop owes; negative when the supplier owes the shop), `archived_at`, `created_by_membership_id`, timestamps. Trigger `suppliers_no_delete`. Archiving needs a zero balance (service rule). |
+| `purchases` | `id`, `shop_id`, `number` (unique per shop), `supplier_id`, `status` (`DRAFT`, `RECEIVED`, `CANCELLED`; no `PARTIALLY_RECEIVED`, D-014), `supplier_reference` (the supplier's invoice or receipt number), `note`, `subtotal`, `extra_costs`, `total` (whole shillings; `total = subtotal + extra_costs`), `idempotency_key` (unique per shop), `request_hash`, who and when for created, received and cancelled, `cancel_reason`. No `purchase_date`: `received_at` is the date the goods arrived. Trigger `purchases_status_flow`: a draft may change, become received or cancelled; a received purchase may only become cancelled; nothing else changes after receipt; no deletes. |
+| `purchase_lines` (named `purchase_items` above) | `id`, `shop_id`, `purchase_id`, `line_no`, `product_id`, `unit_id`, `unit_name` and `conversion` (snapshot), `quantity` and `base_quantity` numeric(18,3), `unit_cost` and `line_total` numeric(18,2), `allocated_extra` numeric(18,2) and `landed_cost_per_base` numeric(18,4) (set when received, D-015). No `quantity_ordered`: what arrived is what is recorded (D-014). Trigger `purchase_parts_draft_only`: lines change only while the purchase is a draft. |
+| `purchase_charges` | `id`, `shop_id`, `purchase_id`, `description`, `amount` > 0 (whole shillings). Extra costs such as transport and porters (D-015). Same draft-only trigger. |
+| `supplier_payments` | `id`, `shop_id`, `supplier_id`, `amount` > 0, `method` (`CASH`, `MOBILE_MONEY`, `BANK`, `OTHER`), `reference`, `note`, `purchase_id` (set when paid while receiving), `idempotency_key` (unique per shop), `request_hash`, `created_by_membership_id`, `created_at`, and `reversed_at`, `reversed_by_membership_id`, `reverse_reason`. Trigger `supplier_payments_reverse_only`: the only change allowed is marking it reversed once; no deletes. No `cash_session_id` until cashier sessions exist (Phase 08). |
+| `supplier_ledger_entries` | `id`, `shop_id`, `supplier_id`, `type` (`OPENING_BALANCE`, `PURCHASE`, `PURCHASE_CANCELLED`, `PAYMENT`, `PAYMENT_REVERSED`), `amount` (signed, never 0, sign must match the type), `balance_after`, `purchase_id` or `payment_id` as the type requires, `note`, `created_by_membership_id`, `created_at`. Append-only. |
+| `stock_movements` | New types `PURCHASE_RECEIPT` (in) and `PURCHASE_REVERSAL` (out), and `purchase_id`, required for those types and empty otherwise. |
+
+`supplier_payment_allocations` is not built: a payment reduces the supplier's balance as a whole (A-028) and is optionally linked to the purchase it was made with. Per-purchase outstanding amounts can be added with allocations if the owner wants them.
+
+**Invariant:** for every supplier, `suppliers.balance = Σ supplier_ledger_entries.amount`. Checked on demand by `GET /api/v1/shops/current/suppliers/reconciliation` and in tests.
+
+Tenant classification: all seven tables are shop-owned and go through the shop-scoped client.
+
 ## 8. Sales
 
 | Entity | Key fields | Notes |
