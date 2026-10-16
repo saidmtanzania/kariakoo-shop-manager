@@ -28,6 +28,10 @@ jobs:
         options: >-
           --health-cmd "pg_isready -U ksm -d ksm"
           --health-interval 5s --health-timeout 3s --health-retries 20
+      mailpit:
+        # Catches the verification and reset emails the end-to-end tests open.
+        image: axllent/mailpit:v1.27
+        ports: ['1025:1025', '8025:8025']
     env:
       DATABASE_URL: postgresql://ksm:ksm_ci_password@localhost:5432/ksm?schema=public
       WEB_ORIGIN: http://localhost:3000
@@ -55,7 +59,7 @@ jobs:
       - run: pnpm build
       - name: Install Playwright Chromium
         run: pnpm --filter @ksm/tests exec playwright install --with-deps chromium
-      - name: End-to-end smoke tests
+      - name: End-to-end tests
         run: pnpm test:e2e
       - uses: actions/upload-artifact@v4
         if: failure()

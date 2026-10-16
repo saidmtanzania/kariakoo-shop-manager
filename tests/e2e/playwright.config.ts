@@ -7,13 +7,14 @@ const DATABASE_URL =
   'postgresql://ksm:ksm_local_password@localhost:5432/ksm?schema=public';
 
 /**
- * End-to-end tests run against built apps. Start PostgreSQL first
- * (docker compose up -d postgres) and run `pnpm build`; Playwright then starts
+ * End-to-end tests run against built apps. Start PostgreSQL and Mailpit first
+ * (docker compose up -d postgres mailpit) and run `pnpm build`; Playwright then starts
  * the API and the web server, or reuses ones already running.
  */
 export default defineConfig({
   testDir: '.',
   testMatch: '**/*.e2e.ts',
+  globalSetup: './global-setup.ts',
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 1 : 0,
@@ -55,6 +56,14 @@ export default defineConfig({
         DATABASE_URL,
         WEB_ORIGIN: WEB_URL,
         LOG_LEVEL: 'warn',
+        // Requests arrive through the web app's /api proxy (one hop).
+        TRUST_PROXY: '1',
+        // Every simulated person signs up from the same address.
+        RATE_LIMIT_MULTIPLIER: '10',
+        // Real SMTP into Mailpit (docker compose up -d mailpit).
+        MAIL_TRANSPORT: 'smtp',
+        SMTP_HOST: process.env.SMTP_HOST ?? 'localhost',
+        SMTP_PORT: process.env.SMTP_PORT ?? '1025',
       },
     },
     {

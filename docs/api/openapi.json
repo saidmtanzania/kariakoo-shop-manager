@@ -1,6 +1,41 @@
 {
   "openapi": "3.0.0",
   "paths": {
+    "/api/v1/shops/current/audit-logs": {
+      "get": {
+        "operationId": "AuditController_list_v1",
+        "parameters": [
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "audit"
+        ]
+      }
+    },
     "/api/v1/health": {
       "get": {
         "operationId": "HealthController_live_v1",
@@ -52,6 +87,644 @@
           "health"
         ]
       }
+    },
+    "/api/v1/shops/current/members": {
+      "get": {
+        "operationId": "MembersController_list_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "members"
+        ]
+      }
+    },
+    "/api/v1/shops/current/members/{membershipId}/roles": {
+      "put": {
+        "operationId": "MembersController_setRoles_v1",
+        "parameters": [
+          {
+            "name": "membershipId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetRolesDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "members"
+        ]
+      }
+    },
+    "/api/v1/shops/current/members/{membershipId}/status": {
+      "put": {
+        "operationId": "MembersController_setStatus_v1",
+        "parameters": [
+          {
+            "name": "membershipId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetStatusDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "members"
+        ]
+      }
+    },
+    "/api/v1/shops/current/members/{membershipId}": {
+      "delete": {
+        "operationId": "MembersController_remove_v1",
+        "parameters": [
+          {
+            "name": "membershipId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "members"
+        ]
+      }
+    },
+    "/api/v1/shops/current/members/{membershipId}/owner": {
+      "put": {
+        "operationId": "MembersController_setOwner_v1",
+        "parameters": [
+          {
+            "name": "membershipId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetOwnerDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "members"
+        ]
+      }
+    },
+    "/api/v1/shops/current/permissions": {
+      "get": {
+        "operationId": "RolesController_permissions_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "roles"
+        ]
+      }
+    },
+    "/api/v1/shops/current/roles": {
+      "get": {
+        "operationId": "RolesController_list_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "roles"
+        ]
+      },
+      "post": {
+        "operationId": "RolesController_create_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "roles"
+        ]
+      }
+    },
+    "/api/v1/shops/current/roles/{roleId}": {
+      "put": {
+        "operationId": "RolesController_update_v1",
+        "parameters": [
+          {
+            "name": "roleId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RoleDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "roles"
+        ]
+      },
+      "delete": {
+        "operationId": "RolesController_remove_v1",
+        "parameters": [
+          {
+            "name": "roleId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "roles"
+        ]
+      }
+    },
+    "/api/v1/auth/register": {
+      "post": {
+        "operationId": "AuthController_register_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/verify-email": {
+      "post": {
+        "operationId": "AuthController_verifyEmail_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TokenDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/resend-verification": {
+      "post": {
+        "operationId": "AuthController_resendVerification_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "operationId": "AuthController_login_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/logout": {
+      "post": {
+        "operationId": "AuthController_logout_v1",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/password/forgot": {
+      "post": {
+        "operationId": "AuthController_forgotPassword_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EmailDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/password/reset": {
+      "post": {
+        "operationId": "AuthController_resetPassword_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/session": {
+      "get": {
+        "operationId": "AuthController_session_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/session/active-shop": {
+      "put": {
+        "operationId": "AuthController_switchShop_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SwitchShopDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/shops": {
+      "post": {
+        "operationId": "ShopsController_create_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateShopDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "shops"
+        ]
+      },
+      "get": {
+        "operationId": "ShopsController_list_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "shops"
+        ]
+      }
+    },
+    "/api/v1/shops/current": {
+      "get": {
+        "operationId": "ShopsController_current_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "shops"
+        ]
+      },
+      "patch": {
+        "operationId": "ShopsController_update_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateShopDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "shops"
+        ]
+      }
+    },
+    "/api/v1/shops/current/invitations": {
+      "get": {
+        "operationId": "ShopInvitationsController_list_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "invitations"
+        ]
+      },
+      "post": {
+        "operationId": "ShopInvitationsController_create_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInvitationDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "invitations"
+        ]
+      }
+    },
+    "/api/v1/shops/current/invitations/{invitationId}/resend": {
+      "post": {
+        "operationId": "ShopInvitationsController_resend_v1",
+        "parameters": [
+          {
+            "name": "invitationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "invitations"
+        ]
+      }
+    },
+    "/api/v1/shops/current/invitations/{invitationId}/revoke": {
+      "post": {
+        "operationId": "ShopInvitationsController_revoke_v1",
+        "parameters": [
+          {
+            "name": "invitationId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "invitations"
+        ]
+      }
+    },
+    "/api/v1/invitations/preview": {
+      "post": {
+        "operationId": "InvitationAcceptanceController_preview_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvitationTokenDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "invitations"
+        ]
+      }
+    },
+    "/api/v1/invitations/accept": {
+      "post": {
+        "operationId": "InvitationAcceptanceController_accept_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InvitationTokenDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "invitations"
+        ]
+      }
     }
   },
   "info": {
@@ -63,6 +736,13 @@
   "tags": [],
   "servers": [],
   "components": {
+    "securitySchemes": {
+      "cookie": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "ksm_session"
+      }
+    },
     "schemas": {
       "LivenessDto": {
         "type": "object",
@@ -120,6 +800,289 @@
           "status",
           "checks",
           "timestamp"
+        ]
+      },
+      "SetRolesDto": {
+        "type": "object",
+        "properties": {
+          "roleIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "required": [
+          "roleIds"
+        ]
+      },
+      "SetStatusDto": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "ACTIVE",
+              "SUSPENDED"
+            ]
+          }
+        },
+        "required": [
+          "status"
+        ]
+      },
+      "SetOwnerDto": {
+        "type": "object",
+        "properties": {
+          "isOwner": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "isOwner"
+        ]
+      },
+      "RoleDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 60
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "dashboard.read",
+                "products.read",
+                "products.create",
+                "products.update",
+                "products.archive",
+                "products.prices.update",
+                "inventory.read",
+                "inventory.adjust",
+                "inventory.opening",
+                "suppliers.read",
+                "suppliers.manage",
+                "purchases.read",
+                "purchases.create",
+                "purchases.receive",
+                "purchases.cancel",
+                "supplier_payments.create",
+                "sales.read",
+                "sales.read_all",
+                "sales.create",
+                "sales.discount",
+                "sales.credit",
+                "sales.refund",
+                "sales.void",
+                "customers.read",
+                "customers.manage",
+                "customers.credit.manage",
+                "expenses.read",
+                "expenses.create",
+                "expenses.void",
+                "cash_sessions.open",
+                "cash_sessions.close",
+                "cash_sessions.review",
+                "reports.read",
+                "reports.profit.read",
+                "reports.export",
+                "users.read",
+                "users.invite",
+                "users.manage",
+                "roles.manage",
+                "audit.read",
+                "subscription.read",
+                "subscription.manage",
+                "settings.manage",
+                "devices.manage"
+              ]
+            }
+          }
+        },
+        "required": [
+          "name",
+          "permissions"
+        ]
+      },
+      "RegisterDto": {
+        "type": "object",
+        "properties": {
+          "fullName": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "fullName",
+          "email",
+          "password"
+        ]
+      },
+      "TokenDto": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "token"
+        ]
+      },
+      "EmailDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          }
+        },
+        "required": [
+          "email"
+        ]
+      },
+      "LoginDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "ResetPasswordDto": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 128
+          }
+        },
+        "required": [
+          "token",
+          "password"
+        ]
+      },
+      "SwitchShopDto": {
+        "type": "object",
+        "properties": {
+          "shopId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "shopId"
+        ]
+      },
+      "CreateShopDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "phone": {
+            "type": "string",
+            "maxLength": 32
+          },
+          "address": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "businessType": {
+            "type": "string",
+            "enum": [
+              "WHOLESALE",
+              "RETAIL",
+              "BOTH"
+            ],
+            "default": "BOTH"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UpdateShopDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "phone": {
+            "type": "string",
+            "maxLength": 32
+          },
+          "address": {
+            "type": "string",
+            "maxLength": 255
+          },
+          "businessType": {
+            "type": "string",
+            "enum": [
+              "WHOLESALE",
+              "RETAIL",
+              "BOTH"
+            ],
+            "default": "BOTH"
+          }
+        }
+      },
+      "CreateInvitationDto": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "roleIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "required": [
+          "email",
+          "roleIds"
+        ]
+      },
+      "InvitationTokenDto": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "token"
         ]
       }
     }

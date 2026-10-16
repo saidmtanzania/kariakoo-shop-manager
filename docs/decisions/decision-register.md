@@ -2,7 +2,7 @@
 
 | Field | Value |
 |---|---|
-| Last updated | 2026-10-12 |
+| Last updated | 2026-10-15 |
 | Owner | Taibi (shop-manager product owner) |
 
 Statuses: **Proposed** (recommendation, not approved) · **Approved** (explicit owner approval recorded) · **Superseded** · **Open** (no recommendation yet; needs input).
@@ -17,14 +17,14 @@ Business decisions are `D-xxx`; architecture decisions are `A-xxx`. A decision i
 | D-002 | Branches | Approved | 05 (schema shape) |
 | D-003 | Inventory costing method | Approved | 06, 07, 09 |
 | D-004 | Offline sales scope | Approved | 10 (and 07 data shape) |
-| D-005 | Plans, limits, grace and expiry restrictions | Open | 03 (seats), 04 |
+| D-005 | Plans, limits, grace and expiry restrictions | Open (Phase 03 uses an interim seat setting) | 03 (seats), 04 |
 | D-006 | Mobile-money provider and confirmation approach | Open | 04, 07 |
 | D-007 | Negative stock | Proposed | 05 |
 | D-008 | When wholesale price applies | Proposed | 07 |
 | D-009 | Tax / TRA fiscal receipts | Open | 07 (receipts), 09 |
 | D-010 | Discount limits | Proposed | 07 |
 | D-011 | Returns, refunds and voids policy | Proposed | 07 |
-| D-012 | Login identifier (email vs phone) | Proposed | 02 |
+| D-012 | Login identifier (email vs phone) | Proposed (used in Phase 02) | 02 |
 | D-013 | Fractional quantities | Proposed | 05 |
 | D-014 | Purchase orders and partial receiving | Proposed | 06 |
 | D-015 | Landed costs on purchases | Proposed | 06 |
@@ -36,17 +36,23 @@ Business decisions are `D-xxx`; architecture decisions are `A-xxx`. A decision i
 | D-021 | Money precision and rounding | Proposed | 05, 07 |
 | D-022 | Platform support access to shop data | Proposed | 11 |
 | A-001 | Modular monolith | Approved (owner plan) | — |
-| A-002 | Tenancy model | Proposed | 02 |
-| A-003 | Authentication strategy | Proposed | 02 |
+| A-002 | Tenancy model | Proposed (used in Phase 02) | 02 |
+| A-003 | Authentication strategy | Proposed (used in Phase 02) | 02 |
 | A-004 | API conventions | Proposed | 01 |
 | A-005 | Workspace tooling | Proposed | 01 |
 | A-006 | Stock concurrency approach | Proposed | 05, 07 |
-| A-007 | Outbox for side effects, no Redis initially | Proposed | 03 |
+| A-007 | Outbox for side effects, no Redis initially | Proposed (used in Phase 03) | 03 |
 | A-008 | IDs and money representation | Proposed | 01 |
 | A-009 | Technology stack | Approved (owner plan) | — |
 | A-010 | Vitest instead of Jest | Approved | — |
 | A-011 | Linters per app | Proposed (used in Phase 01) | 01 |
 | A-012 | Runtime and major versions | Proposed (used in Phase 01) | 01 |
+| A-013 | Rate limiting in PostgreSQL | Proposed (used in Phase 02) | 02 |
+| A-014 | Sending email over SMTP | Proposed (used in Phase 02) | 02 |
+| A-015 | Permission catalog in code, seeded to the database | Proposed (used in Phase 03) | 03 |
+| A-016 | Shop owners hold every permission through an owner flag | Proposed (used in Phase 03) | 03 |
+| A-017 | Default role templates per shop | Proposed (used in Phase 03) | 03 |
+| A-018 | One pending invitation per email, enforced in the service | Proposed (used in Phase 03) | 03 |
 
 ---
 
@@ -95,6 +101,7 @@ Business decisions are `D-xxx`; architecture decisions are `A-xxx`. A decision i
 
 - **Questions:** Plan names and prices (weekly / monthly in TZS)? Which features per plan (seats, products, offline, profit reports, export)? Grace period length (proposal: 3 days)? Restricted mode behaviour (proposal: read-only — no new sales/purchases, but view, export and receive debt payments allowed)? Reminder channel (SMS cost vs email)?
 - **Status:** Open. Needed before Phase 04 (seat limits used by Phase 03 can default to "unlimited" until decided).
+- *Phase 03 (2026-10-15):* seats are counted as members who are not removed plus unexpired pending invitations. Until plans exist, the optional `SEAT_LIMIT` setting applies one limit to every shop; unset means unlimited. Phase 04 replaces it with the plan's limit.
 
 ## D-006 Mobile-money provider and confirmation approach — Open
 
@@ -136,7 +143,7 @@ Business decisions are `D-xxx`; architecture decisions are `A-xxx`. A decision i
 
 - **Recommendation:** Email + password for initial release (invitations are by email per plan). Phone/SMS OTP login is a later option (SMS cost, SIM-swap risk).
 - **Consequence:** Staff without email cannot be invited; owner may need to create emails for them. **Owner should confirm this is acceptable for Kariakoo staff.**
-- **Status:** Proposed.
+- **Status:** Proposed. *Phase 02 (2026-10-15):* built as email and password only; the owner was asked to confirm on 2026-10-15 and has not answered yet. Adding phone login later means a new identifier column and an SMS provider; sessions and shop isolation are unaffected.
 
 ## D-013 Fractional quantities
 
@@ -197,8 +204,12 @@ NestJS + Next.js + PostgreSQL + Prisma, Tailwind + shadcn/ui, TanStack Query, RH
 ## A-002 Tenancy model — Proposed
 Shared schema with `shop_id`; application-layer enforcement via `ShopContext` + Prisma extension; PostgreSQL RLS considered as defence in depth in Phase 02. Alternative (schema-per-tenant) rejected: migrations and reporting complexity for many small shops.
 
+*Phase 02 (2026-10-15):* built as described: the active shop lives in the server-side session and is re-validated on every request, and `scopedToShop()` confines queries on shop-owned models. **RLS was not added.** Recommendation: keep application-level enforcement now and revisit RLS before the first shop goes live, because it touches every query and connection. The owner was asked on 2026-10-15 (options: approve as built, or add RLS now) and has not answered yet.
+
 ## A-003 Authentication strategy — Proposed
 Server-side opaque sessions in HttpOnly cookies (see security model §3). Alternative: JWT access + rotating refresh tokens — better for third-party/native clients, harder revocation. Revisit if a native app is planned.
+
+*Phase 02 (2026-10-15):* built as described; details in security model section 3 ("As built in Phase 02"). The CSRF defence is the custom-header option (`X-Requested-With: XMLHttpRequest` on every state-changing request). Awaiting owner approval (asked 2026-10-15).
 
 ## A-004 API conventions — Proposed
 REST `/api/v1`, OpenAPI, RFC 9457 errors, cursor pagination, `Idempotency-Key`, decimal strings for money.
@@ -215,6 +226,8 @@ Conditional `UPDATE ... WHERE quantity >= q` plus deterministic lock ordering at
 
 ## A-007 Outbox and background work — Proposed
 PostgreSQL outbox + worker process (`@nestjs/schedule` or `pg-boss`). No Redis until justified.
+
+*Phase 03 (2026-10-15):* built without a new library. `outbox_messages` rows are written in the same transaction as the change that causes them. An in-process worker (`OUTBOX_WORKER=on`, polling every `OUTBOX_POLL_MS`) claims due rows with `FOR UPDATE SKIP LOCKED`, so several API instances can run it safely; a claim not finished within 60 seconds is picked up again. Failures retry with backoff (5 s, 10 s, 20 s, 40 s) and stop after 5 attempts as `FAILED`. Sent and failed rows keep only the recipient and subject, because email bodies carry single-use tokens. All email (sign-up, password reset, invitations) now goes through it. Still awaiting owner approval; a separate worker process can be split out later by setting `OUTBOX_WORKER=off` on the API.
 
 ## A-008 IDs and money representation — Proposed
 UUID v7 IDs; Prisma `Decimal` / `decimal.js` in code; strings in JSON; never JS `number` for money.
@@ -239,6 +252,48 @@ UUID v7 IDs; Prisma `Decimal` / `decimal.js` in code; strings in JSON; never JS 
 
 - **Decision used:** Node.js 22 LTS, pnpm 10.28, TypeScript 6.0 (TypeScript 7 is not yet supported by typescript-eslint or the Next.js/Nest toolchains), NestJS 12, Next.js 16.4, React 19, Prisma 7.10 with the `@prisma/adapter-pg` driver adapter (Prisma 8 is only a release candidate), PostgreSQL 17, Tailwind CSS 4.
 - **Status:** Proposed — used in Phase 01. **Date:** 2026-10-15
+
+## A-013 Rate limiting in PostgreSQL — Proposed
+
+- **Context:** The security model named `@nestjs/throttler` with a PostgreSQL-backed store. The throttler has no maintained PostgreSQL store, and the per-email lockout needs counters that the API can check and reset itself (for example, after a successful sign-in or password reset).
+- **Decision used:** a small `RateLimitService` storing fixed-window counters in a `rate_limit_counters` table with one atomic upsert per hit, a `@RateLimit()` decorator for per-IP and per-email limits, and expired rows deleted on roughly 1 in 100 hits. No Redis (consistent with A-007).
+- **Alternatives:** `@nestjs/throttler` with its in-memory store (limits reset on restart and are per-process); Redis (another service to run).
+- **Consequence:** one extra write per limited request on the auth endpoints only. Revisit if traffic grows enough for this to matter.
+- *Phase 03:* invitation sending (50 per hour per IP), invitation preview (30) and acceptance (20) are limited the same way. `RATE_LIMIT_MULTIPLIER` (default 1, logged as a warning when higher) raises every limit for the browser tests only, where all simulated people share one address.
+- **Status:** Proposed — used in Phase 02. **Date:** 2026-10-15
+
+## A-014 Sending email over SMTP — Proposed
+
+- **Decision used:** `nodemailer` over SMTP, configured by `SMTP_*` variables, so any provider that offers SMTP (Amazon SES, Mailgun, Brevo, a Tanzanian host) can be used without code changes. Mailpit catches all mail locally and in CI. `MAIL_TRANSPORT=memory` is for automated tests and is refused in production.
+- **Interim:** mail is sent after the database change commits, inside the request; a failed send is logged and the user can ask for a new link. The PostgreSQL outbox (A-007) replaces this in Phase 03, where invitations need reliable delivery. *Phase 03:* done; every email is now queued in the outbox and retried.
+- **Open:** the production provider and sending domain (needed before launch, with SPF and DKIM records).
+- **Status:** Proposed — used in Phase 02. **Date:** 2026-10-15
+
+## A-015 Permission catalog in code, seeded to the database — Proposed
+
+- **Decision used:** the list of permissions lives in `packages/shared/src/permissions.ts` (44 shop permissions, 4 platform permissions) so the API, the web app and the tests share one list. A migration inserts the same rows into the `permissions` table, which roles reference by foreign key. A test fails if the two ever differ. Adding a permission means editing the list and adding a migration.
+- **Guard:** a database trigger refuses platform permissions on shop roles, in addition to the API's validation.
+- **Alternative:** permissions only in the database, edited by platform staff (more flexible, but code that checks a permission could then refer to one that does not exist).
+- **Status:** Proposed — used in Phase 03. **Date:** 2026-10-15
+
+## A-016 Shop owners hold every permission through an owner flag — Proposed
+
+- **Decision used:** `shop_memberships.is_owner` marks owners, who hold every shop permission without needing a role. Only an owner can appoint, demote, suspend, remove or change the roles of another owner, and a shop always keeps at least one active owner. Platform permissions are never granted to shop members.
+- **Why:** an "Owner" role that could be edited would let an owner lock themselves out, and a staff member with "manage roles" could edit it.
+- **Alternative:** a protected, built-in Owner role (same effect, more special cases in role editing).
+- **Status:** Proposed — used in Phase 03. **Date:** 2026-10-15
+
+## A-017 Default role templates per shop — Proposed
+
+- **Decision used:** every new shop starts with three ordinary roles, Manager, Cashier and Storekeeper, whose permissions are listed in `docs/security/permission-catalog.md`. Owners can rename, edit or delete them like any role they create. Staff with "manage roles" can only give out permissions they hold themselves.
+- **Status:** Proposed — used in Phase 03. **Date:** 2026-10-15
+
+## A-018 One pending invitation per email, enforced in the service — Proposed
+
+- **Context:** a partial unique index (`UNIQUE (shop_id, email) WHERE status = 'PENDING'`) is the natural guard, but Prisma 7.10 cannot describe partial indexes, so the migration drift check would report it as unexpected.
+- **Decision used:** invitation creation, resending and acceptance lock the shop row (`SELECT ... FOR UPDATE`) and check for a pending invitation and the seat count inside that lock. Acceptance also uses a conditional update, so a token can only be used once.
+- **Revisit:** when Prisma supports partial indexes, add the index as a second guard.
+- **Status:** Proposed — used in Phase 03. **Date:** 2026-10-15
 
 ---
 

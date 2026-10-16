@@ -49,10 +49,57 @@ describe('validateEnv', () => {
     );
   });
 
+  it('derives APP_URL and COOKIE_SECURE', () => {
+    expect(validateEnv(valid)).toMatchObject({
+      APP_URL: 'http://localhost:3000',
+      COOKIE_SECURE: false,
+      SESSION_IDLE_HOURS: 12,
+      SESSION_ABSOLUTE_DAYS: 7,
+    });
+    expect(
+      validateEnv({ ...valid, NODE_ENV: 'production' }).COOKIE_SECURE,
+    ).toBe(true);
+    expect(
+      validateEnv({ ...valid, APP_URL: 'https://app.example.co.tz/' }).APP_URL,
+    ).toBe('https://app.example.co.tz');
+  });
+
+  it('refuses the in-memory mail transport in production', () => {
+    expect(() =>
+      validateEnv({
+        ...valid,
+        NODE_ENV: 'production',
+        MAIL_TRANSPORT: 'memory',
+      }),
+    ).toThrow(/MAIL_TRANSPORT/);
+  });
+
   it('rejects an invalid port and log level', () => {
     expect(() => validateEnv({ ...valid, PORT: '70000' })).toThrow(/PORT/);
     expect(() => validateEnv({ ...valid, LOG_LEVEL: 'verbose' })).toThrow(
       /LOG_LEVEL/,
     );
+  });
+
+  it('treats an empty seat limit as no limit and validates a set one', () => {
+    expect(
+      validateEnv({ ...valid, SEAT_LIMIT: '' }).SEAT_LIMIT,
+    ).toBeUndefined();
+    expect(validateEnv(valid).SEAT_LIMIT).toBeUndefined();
+    expect(validateEnv({ ...valid, SEAT_LIMIT: '5' }).SEAT_LIMIT).toBe(5);
+    expect(() => validateEnv({ ...valid, SEAT_LIMIT: '0' })).toThrow(
+      /SEAT_LIMIT/,
+    );
+  });
+
+  it('defaults the outbox worker on and the rate limit multiplier to 1', () => {
+    expect(validateEnv(valid)).toMatchObject({
+      OUTBOX_WORKER: 'on',
+      OUTBOX_POLL_MS: 1000,
+      RATE_LIMIT_MULTIPLIER: 1,
+    });
+    expect(() =>
+      validateEnv({ ...valid, RATE_LIMIT_MULTIPLIER: '1000' }),
+    ).toThrow(/RATE_LIMIT_MULTIPLIER/);
   });
 });

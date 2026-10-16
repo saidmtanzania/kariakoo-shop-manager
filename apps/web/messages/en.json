@@ -5,12 +5,302 @@
   },
   "SystemStatus": {
     "title": "System status",
-    "description": "The app is being set up. Shop features arrive in later releases.",
+    "description": "Whether the server and database are reachable.",
     "api": "Server",
     "database": "Database",
     "checking": "Checking…",
     "connected": "Connected",
     "disconnected": "Not reachable",
     "retry": "Check again"
+  },
+  "Fields": {
+    "fullName": "Full name",
+    "email": "Email",
+    "password": "Password",
+    "newPassword": "New password",
+    "shopName": "Shop name",
+    "phone": "Phone (optional)",
+    "address": "Location in Kariakoo (optional)",
+    "businessType": "Type of business"
+  },
+  "BusinessTypes": {
+    "WHOLESALE": "Wholesale",
+    "RETAIL": "Retail",
+    "BOTH": "Wholesale and retail"
+  },
+  "Validation": {
+    "fullName": "Enter your name.",
+    "email": "Enter a valid email address.",
+    "password": "Use 8 to 128 characters.",
+    "passwordRequired": "Enter your password.",
+    "shopName": "Enter the shop name.",
+    "phone": "Use at most 32 characters.",
+    "address": "Use at most 255 characters."
+  },
+  "Errors": {
+    "invalid_credentials": "Email or password is incorrect.",
+    "email_not_verified": "Confirm your email address before signing in. Check your inbox or send a new link.",
+    "rate_limited": "Too many attempts. Please wait a few minutes and try again.",
+    "invalid_or_expired_token": "This link is invalid or has expired. Request a new one.",
+    "network": "Could not reach the server. Check your connection and try again.",
+    "generic": "Something went wrong. Please try again.",
+    "permission_denied": "You do not have permission to do this.",
+    "permission_escalation": "You can only give permissions you have yourself.",
+    "owner_protected": "Only an owner can change another owner.",
+    "owner_required": "Only a shop owner can do this.",
+    "last_owner": "The shop needs at least one active owner.",
+    "role_name_taken": "A role with this name already exists.",
+    "role_in_use": "This role is still given to staff or on an invitation. Change them first.",
+    "role_not_found": "That role no longer exists. Refresh and try again.",
+    "member_not_found": "That person is no longer in the team. Refresh and try again.",
+    "already_member": "This person is already a member of the shop.",
+    "invitation_pending": "This email already has a pending invitation. Resend it instead.",
+    "invitation_not_found": "This invitation link is not valid.",
+    "invitation_expired": "This invitation has expired. Ask the shop for a new one.",
+    "invitation_revoked": "This invitation was cancelled.",
+    "invitation_used": "This invitation has already been used.",
+    "invitation_email_mismatch": "This invitation was sent to a different email address. Sign in with that address to accept it.",
+    "invitation_not_pending": "This invitation is no longer pending.",
+    "resend_limit": "This invitation has been resent too many times. Cancel it and invite again.",
+    "seat_limit_reached": "The shop has reached its staff limit.",
+    "shop_suspended": "This shop is suspended."
+  },
+  "Login": {
+    "title": "Sign in",
+    "description": "Welcome back. Sign in to your shop.",
+    "submit": "Sign in",
+    "forgot": "Forgot password?",
+    "noAccount": "New here?",
+    "register": "Create an account",
+    "resend": "Send a new confirmation link"
+  },
+  "Register": {
+    "title": "Create your account",
+    "description": "You can create or join a shop after confirming your email.",
+    "submit": "Create account",
+    "hasAccount": "Already have an account?",
+    "login": "Sign in",
+    "sentTitle": "Check your email",
+    "sent": "If the details are valid, we have sent a link to {email}. Open it to confirm your address, then sign in."
+  },
+  "VerifyEmail": {
+    "title": "Confirm your email",
+    "verifying": "Confirming your email…",
+    "done": "Your email is confirmed. You can now sign in.",
+    "login": "Go to sign in",
+    "missing": "This link is incomplete. Open the link from your email again, or request a new one.",
+    "resendTitle": "Send a new link",
+    "resend": "Send link",
+    "resent": "If that address has an unconfirmed account, we have sent a new link."
+  },
+  "ForgotPassword": {
+    "title": "Reset your password",
+    "description": "Enter your email and we will send you a reset link.",
+    "submit": "Send reset link",
+    "sent": "If an account exists for {email}, we have sent a link to reset the password. The link expires in 30 minutes.",
+    "back": "Back to sign in"
+  },
+  "ResetPassword": {
+    "title": "Choose a new password",
+    "description": "This signs you out on every device.",
+    "submit": "Save new password",
+    "done": "Your password has been changed. Sign in with your new password.",
+    "login": "Go to sign in",
+    "missing": "This link is incomplete. Request a new reset link.",
+    "requestNew": "Request a new link"
+  },
+  "NewShop": {
+    "title": "Create a shop",
+    "description": "You will be the owner. You can add staff later.",
+    "submit": "Create shop",
+    "cancel": "Cancel"
+  },
+  "Home": {
+    "loading": "Loading…",
+    "signedInAs": "Signed in as {name}",
+    "logout": "Sign out",
+    "noShopsTitle": "Create your first shop",
+    "noShops": "You are not a member of any shop yet. Create one to get started, or ask a shop owner to add you.",
+    "createShop": "Create a shop",
+    "chooseTitle": "Choose a shop",
+    "choose": "Open",
+    "activeShop": "Current shop",
+    "switchShop": "Switch shop",
+    "owner": "Owner",
+    "staff": "Staff",
+    "comingSoon": "Sales, stock and credit features arrive in the next releases.",
+    "newShop": "New shop",
+    "currency": "Currency",
+    "timezone": "Time zone",
+    "phone": "Phone",
+    "address": "Location",
+    "type": "Business",
+    "team": "Team",
+    "pendingInvitation": "You have an invitation waiting.",
+    "openInvitation": "Open invitation"
+  },
+  "Team": {
+    "title": "Team",
+    "back": "Back to shop",
+    "noAccess": "You do not have permission to see the team.",
+    "members": "Members",
+    "invitations": "Invitations",
+    "roles": "Roles",
+    "you": "you",
+    "owner": "Owner",
+    "noRoles": "No roles",
+    "status": {
+      "ACTIVE": "Active",
+      "SUSPENDED": "Suspended",
+      "REMOVED": "Removed"
+    },
+    "editRoles": "Change roles",
+    "saveRoles": "Save roles",
+    "cancel": "Cancel",
+    "suspend": "Suspend",
+    "reactivate": "Reactivate",
+    "remove": "Remove",
+    "confirmRemove": "Yes, remove {name}",
+    "makeOwner": "Make owner",
+    "removeOwner": "Remove as owner",
+    "inviteTitle": "Invite staff",
+    "inviteHint": "They will get an email with a link that works once and expires in 7 days.",
+    "inviteRoles": "Roles for this person",
+    "sendInvite": "Send invitation",
+    "inviteSent": "Invitation sent to {email}.",
+    "noInvitations": "No invitations yet.",
+    "invitationStatus": {
+      "PENDING": "Pending",
+      "ACCEPTED": "Accepted",
+      "EXPIRED": "Expired",
+      "REVOKED": "Cancelled"
+    },
+    "expires": "Expires {date}",
+    "resend": "Resend",
+    "revoke": "Cancel invitation",
+    "resent": "A new link was sent.",
+    "newRole": "New role",
+    "editRole": "Edit",
+    "deleteRole": "Delete",
+    "roleName": "Role name",
+    "rolePermissions": "What this role can do",
+    "saveRole": "Save role",
+    "memberCount": "{count, plural, =0 {No members} one {# member} other {# members}}",
+    "permissionCount": "{count, plural, one {# permission} other {# permissions}}",
+    "selectRole": "Choose at least one role.",
+    "roleNameRequired": "Enter a name of up to 60 characters."
+  },
+  "AcceptInvitation": {
+    "title": "Join a shop",
+    "loading": "Checking the invitation…",
+    "missing": "This page needs the link from your invitation email.",
+    "invited": "{inviter} invited you to join {shop}.",
+    "invitedNoName": "You are invited to join {shop}.",
+    "sentTo": "Sent to {email}",
+    "signInFirst": "Sign in with {email} to accept. If you do not have an account yet, create one with that address.",
+    "signIn": "Sign in",
+    "register": "Create an account",
+    "accept": "Accept and join",
+    "wrongAccount": "You are signed in as {email}. Sign out and sign in with the invited address.",
+    "signOut": "Sign out"
+  },
+  "PermissionModules": {
+    "dashboard": "Dashboard",
+    "sales": "Sales",
+    "products": "Products",
+    "inventory": "Stock",
+    "purchases": "Purchases and suppliers",
+    "customers": "Customers",
+    "expenses": "Expenses",
+    "cash": "Cash drawer",
+    "reports": "Reports",
+    "team": "Team",
+    "settings": "Settings"
+  },
+  "Permissions": {
+    "dashboard": {
+      "read": "See the dashboard"
+    },
+    "products": {
+      "read": "See products",
+      "create": "Add products",
+      "update": "Edit products",
+      "archive": "Archive products",
+      "prices": {
+        "update": "Change prices"
+      }
+    },
+    "inventory": {
+      "read": "See stock",
+      "adjust": "Adjust stock",
+      "opening": "Enter opening stock"
+    },
+    "suppliers": {
+      "read": "See suppliers",
+      "manage": "Manage suppliers"
+    },
+    "purchases": {
+      "read": "See purchases",
+      "create": "Create purchases",
+      "receive": "Receive goods",
+      "cancel": "Cancel purchases"
+    },
+    "supplier_payments": {
+      "create": "Pay suppliers"
+    },
+    "sales": {
+      "read": "See own sales",
+      "read_all": "See all sales",
+      "create": "Make sales",
+      "discount": "Give discounts",
+      "credit": "Sell on credit",
+      "refund": "Refund sales",
+      "void": "Void sales"
+    },
+    "customers": {
+      "read": "See customers",
+      "manage": "Manage customers",
+      "credit": {
+        "manage": "Manage customer credit limits"
+      }
+    },
+    "expenses": {
+      "read": "See expenses",
+      "create": "Record expenses",
+      "void": "Void expenses"
+    },
+    "cash_sessions": {
+      "open": "Open the cash drawer",
+      "close": "Close the cash drawer",
+      "review": "Review cash counts"
+    },
+    "reports": {
+      "read": "See reports",
+      "profit": {
+        "read": "See profit"
+      },
+      "export": "Export reports"
+    },
+    "users": {
+      "read": "See the team",
+      "invite": "Invite staff",
+      "manage": "Manage staff"
+    },
+    "roles": {
+      "manage": "Manage roles"
+    },
+    "audit": {
+      "read": "See the activity log"
+    },
+    "subscription": {
+      "read": "See the subscription",
+      "manage": "Manage the subscription"
+    },
+    "settings": {
+      "manage": "Change shop settings"
+    },
+    "devices": {
+      "manage": "Manage devices"
+    }
   }
 }

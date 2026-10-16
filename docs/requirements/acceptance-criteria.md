@@ -26,24 +26,24 @@ Criteria are written as testable statements (Given/When/Then where useful). Each
 
 ## AC-02 Authentication and shop isolation
 
-- [ ] Register, verify email, login, logout, password reset work end-to-end.
-- [ ] Passwords hashed with Argon2id; reset and verification tokens stored only as hashes and single-use.
-- [ ] Login and reset endpoints are rate-limited; error messages do not reveal whether an email exists.
-- [ ] Given user A in shop 1 only, when A requests any shop-2 resource by ID, then the API returns 404 (not 403, to avoid existence leaks) and no data.
-- [ ] Given a request header/body/query with `shopId` = shop 2, the server ignores it unless A has an active membership in shop 2.
-- [ ] Cross-tenant read and write tests exist for every shop-scoped endpoint (architecture test enforces this).
-- [ ] Logging out invalidates the session server-side; a reused cookie returns 401.
+- [x] Register, verify email, login, logout, password reset work end-to-end. *(Phase 02: integration tests and Playwright through Mailpit.)*
+- [x] Passwords hashed with Argon2id; reset and verification tokens stored only as hashes and single-use.
+- [x] Login and reset endpoints are rate-limited; error messages do not reveal whether an email exists.
+- [x] Given user A in shop 1 only, when A requests any shop-2 resource by ID, then the API returns 404 (not 403, to avoid existence leaks) and no data. *(No route takes a shop id; choosing shop 2 as the active shop returns 404 `shop_not_found`, the same as an unknown id.)*
+- [x] Given a request header/body/query with `shopId` = shop 2, the server ignores it unless A has an active membership in shop 2. *(Query and header values are ignored; a `shopId` or `id` in a body is rejected with 400.)*
+- [ ] Cross-tenant read and write tests exist for every shop-scoped endpoint (architecture test enforces this). *(Partly met in Phase 02: every current shop-scoped endpoint has cross-tenant tests, and a route-inventory test enforces deny-by-default. Automatic enforcement for new endpoints arrives with the Phase 03 permission check.)*
+- [x] Logging out invalidates the session server-side; a reused cookie returns 401.
 
 ## AC-03 Dynamic RBAC and invitations
 
-- [ ] Each protected endpoint declares its required permission; an architecture test fails if an endpoint has none (or is not explicitly public).
-- [ ] Allowed and forbidden tests for each permission.
-- [ ] A role containing a permission the actor does not hold cannot be created or assigned by that actor.
-- [ ] Platform permissions never appear in the shop catalog and cannot be assigned through shop APIs.
-- [ ] Invitation tokens: stored as SHA-256 hashes; expired, revoked, used and email-mismatch tokens are rejected.
-- [ ] Seat limit enforced at invite and at acceptance.
-- [ ] Role and membership changes take effect on the next request and are audited.
-- [ ] The last owner cannot be removed or demoted.
+- [x] Each protected endpoint declares its required permission; an architecture test fails if an endpoint has none (or is not explicitly public). *(Phase 03: `routes.int-spec.ts` reads every controller method's declaration; shop routes without a permission must be on a two-item list.)*
+- [x] Allowed and forbidden tests for each permission. *(Phase 03: every permission that guards a route today — `users.read`, `users.invite`, `users.manage`, `roles.manage`, `audit.read`, `settings.manage` — plus owner-only routes. Later phases add tests for the permissions their routes use.)*
+- [x] A role containing a permission the actor does not hold cannot be created or assigned by that actor.
+- [x] Platform permissions never appear in the shop catalog and cannot be assigned through shop APIs. *(Also refused by a database trigger.)*
+- [x] Invitation tokens: stored as SHA-256 hashes; expired, revoked, used and email-mismatch tokens are rejected.
+- [x] Seat limit enforced at invite and at acceptance. *(Interim `SEAT_LIMIT` setting until plans exist, decision D-005.)*
+- [x] Role and membership changes take effect on the next request and are audited.
+- [x] The last owner cannot be removed or demoted.
 
 ## AC-04 Plans and subscriptions
 
