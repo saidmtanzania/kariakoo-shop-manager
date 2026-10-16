@@ -42,3 +42,39 @@ describe('Stock ledger boundary', () => {
     expect(WRITES.filter((pattern) => pattern.test(text))).toHaveLength(3);
   });
 });
+
+/** The only file allowed to write supplier balances or ledger entries. */
+const SUPPLIER_LEDGER = 'modules/suppliers/services/supplier-ledger.service.ts';
+
+const SUPPLIER_WRITES = [
+  /\bsupplierLedgerEntry\.(create|createMany|update|updateMany|upsert|delete|deleteMany)\b/,
+  /\bdata:\s*\{[^}]*\bbalance\b/,
+  /\b(INSERT\s+INTO|UPDATE|DELETE\s+FROM)\s+"?(suppliers|supplier_ledger_entries)\b/i,
+];
+
+/**
+ * AC-06: supplier balances change only through the supplier ledger
+ * service, always with a ledger entry.
+ */
+describe('Supplier ledger boundary', () => {
+  const writers = (paths: string[]) =>
+    paths.filter((path) => {
+      const text = readFileSync(join(BACKEND_SRC, path), 'utf8');
+      return SUPPLIER_WRITES.some((pattern) => pattern.test(text));
+    });
+
+  it('finds supplier balance writes only in the supplier ledger service', () => {
+    const services = sourceFiles(BACKEND_SRC)
+      .map((path) => relative(BACKEND_SRC, path))
+      .filter((path) => path.startsWith('modules/') && path !== SUPPLIER_LEDGER)
+      .filter((path) => path.includes('/services/'));
+    expect(writers(services)).toEqual([]);
+  });
+
+  it('still recognises the writes in the supplier ledger service', () => {
+    const text = readFileSync(join(BACKEND_SRC, SUPPLIER_LEDGER), 'utf8');
+    expect(
+      SUPPLIER_WRITES.filter((pattern) => pattern.test(text)),
+    ).toHaveLength(2);
+  });
+});

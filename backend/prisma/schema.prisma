@@ -131,6 +131,9 @@ model Shop {
   productCategories    ProductCategory[]
   products             Product[]
   stockAdjustments     StockAdjustment[]
+  counters             ShopCounter[]
+  suppliers            Supplier[]
+  purchases            Purchase[]
 
   @@map("shops")
 }
@@ -589,11 +592,12 @@ model Product {
   createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt             DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  shop      Shop             @relation(fields: [shopId], references: [id], onDelete: Restrict)
-  category  ProductCategory? @relation(fields: [shopId, categoryId], references: [shopId, id], onDelete: Restrict)
-  units     ProductUnit[]
-  balances  StockBalance[]
-  movements StockMovement[]
+  shop          Shop             @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  category      ProductCategory? @relation(fields: [shopId, categoryId], references: [shopId, id], onDelete: Restrict)
+  units         ProductUnit[]
+  balances      StockBalance[]
+  movements     StockMovement[]
+  purchaseLines PurchaseLine[]
 
   @@unique([shopId, id])
   @@unique([shopId, sku])
@@ -623,9 +627,10 @@ model ProductUnit {
   createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  product      Product         @relation(fields: [shopId, productId], references: [shopId, id], onDelete: Restrict)
-  priceHistory PriceHistory[]
-  movements    StockMovement[]
+  product       Product         @relation(fields: [shopId, productId], references: [shopId, id], onDelete: Restrict)
+  priceHistory  PriceHistory[]
+  movements     StockMovement[]
+  purchaseLines PurchaseLine[]
 
   @@unique([shopId, id])
   @@unique([productId, name])
@@ -674,6 +679,8 @@ enum StockMovementType {
   OPENING
   ADJUSTMENT_IN
   ADJUSTMENT_OUT
+  PURCHASE_RECEIPT
+  PURCHASE_REVERSAL
 }
 
 enum AdjustmentReason {
@@ -729,6 +736,8 @@ model StockMovement {
   conversion            Decimal           @db.Decimal(18, 3)
   adjustmentId          String?           @map("adjustment_id") @db.Uuid
   reason                AdjustmentReason?
+  /// The purchase that received (or, when cancelled, reversed) this stock.
+  purchaseId            String?           @map("purchase_id") @db.Uuid
   note                  String?           @db.VarChar(500)
   createdByMembershipId String            @map("created_by_membership_id") @db.Uuid
   createdAt             DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
@@ -737,8 +746,209 @@ model StockMovement {
   location   StockLocation    @relation(fields: [shopId, locationId], references: [shopId, id], onDelete: Restrict)
   unit       ProductUnit      @relation(fields: [shopId, unitId], references: [shopId, id], onDelete: Restrict)
   adjustment StockAdjustment? @relation(fields: [shopId, adjustmentId], references: [shopId, id], onDelete: Restrict)
+  purchase   Purchase?        @relation(fields: [shopId, purchaseId], references: [shopId, id], onDelete: Restrict)
 
   @@index([shopId, productId, createdAt])
   @@index([shopId, createdAt])
   @@map("stock_movements")
+}
+
+// ---------------------------------------------------------------------------
+// Suppliers and purchases (Phase 06; decisions D-014, D-015, D-021, D-003)
+// ---------------------------------------------------------------------------
+
+/// Per-shop running numbers (purchase numbers now; receipts later).
+model ShopCounter {
+  shopId String @map("shop_id") @db.Uuid
+  key    String @db.VarChar(40)
+  value  Int
+
+  shop Shop @relation(fields: [shopId], references: [id], onDelete: Restrict)
+
+  @@id([shopId, key])
+  @@map("shop_counters")
+}
+
+enum PurchaseStatus {
+  DRAFT
+  RECEIVED
+  CANCELLED
+}
+
+enum SupplierEntryType {
+  OPENING_BALANCE
+  PURCHASE
+  PURCHASE_CANCELLED
+  PAYMENT
+  PAYMENT_REVERSED
+}
+
+enum SupplierPaymentMethod {
+  CASH
+  MOBILE_MONEY
+  BANK
+  OTHER
+}
+
+model Supplier {
+  id                    String    @id @db.Uuid
+  shopId                String    @map("shop_id") @db.Uuid
+  name                  String    @db.Citext
+  phone                 String?   @db.VarChar(30)
+  address               String?   @db.VarChar(200)
+  note                  String?   @db.VarChar(500)
+  /// What the shop owes the supplier (negative: the supplier owes the shop).
+  /// Written only with a ledger entry, under a lock on this row; always
+  /// equal to the sum of the supplier's ledger entries.
+  balance               Decimal   @default(0) @db.Decimal(18, 2)
+  archivedAt            DateTime? @map("archived_at") @db.Timestamptz(3)
+  createdByMembershipId String    @map("created_by_membership_id") @db.Uuid
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt             DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  shop      Shop                  @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  purchases Purchase[]
+  payments  SupplierPayment[]
+  entries   SupplierLedgerEntry[]
+
+  @@unique([shopId, id])
+  @@unique([shopId, name])
+  @@map("suppliers")
+}
+
+model Purchase {
+  id                      String         @id @db.Uuid
+  shopId                  String         @map("shop_id") @db.Uuid
+  /// Running number per shop, shown as P-1, P-2…
+  number                  Int
+  supplierId              String         @map("supplier_id") @db.Uuid
+  status                  PurchaseStatus @default(DRAFT)
+  /// The supplier's invoice or delivery note number.
+  supplierReference       String?        @map("supplier_reference") @db.VarChar(60)
+  note                    String?        @db.VarChar(500)
+  /// Sum of line totals, whole shillings.
+  subtotal                Decimal        @default(0) @db.Decimal(18, 2)
+  /// Sum of extra costs (transport, porters; D-015).
+  extraCosts              Decimal        @default(0) @map("extra_costs") @db.Decimal(18, 2)
+  total                   Decimal        @default(0) @db.Decimal(18, 2)
+  idempotencyKey          String         @map("idempotency_key") @db.VarChar(80)
+  requestHash             String         @map("request_hash") @db.Char(64)
+  createdByMembershipId   String         @map("created_by_membership_id") @db.Uuid
+  receivedByMembershipId  String?        @map("received_by_membership_id") @db.Uuid
+  receivedAt              DateTime?      @map("received_at") @db.Timestamptz(3)
+  cancelledByMembershipId String?        @map("cancelled_by_membership_id") @db.Uuid
+  cancelledAt             DateTime?      @map("cancelled_at") @db.Timestamptz(3)
+  cancelReason            String?        @map("cancel_reason") @db.VarChar(500)
+  createdAt               DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt               DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  shop      Shop                  @relation(fields: [shopId], references: [id], onDelete: Restrict)
+  supplier  Supplier              @relation(fields: [shopId, supplierId], references: [shopId, id], onDelete: Restrict)
+  lines     PurchaseLine[]
+  charges   PurchaseCharge[]
+  movements StockMovement[]
+  payments  SupplierPayment[]
+  entries   SupplierLedgerEntry[]
+
+  @@unique([shopId, id])
+  @@unique([shopId, number])
+  @@unique([shopId, idempotencyKey])
+  @@index([shopId, status, createdAt])
+  @@index([shopId, supplierId, createdAt])
+  @@map("purchases")
+}
+
+model PurchaseLine {
+  id                String   @id @db.Uuid
+  shopId            String   @map("shop_id") @db.Uuid
+  purchaseId        String   @map("purchase_id") @db.Uuid
+  lineNo            Int      @map("line_no")
+  productId         String   @map("product_id") @db.Uuid
+  unitId            String   @map("unit_id") @db.Uuid
+  /// Unit name and conversion as used (snapshot).
+  unitName          String   @map("unit_name") @db.VarChar(40)
+  conversion        Decimal  @db.Decimal(18, 3)
+  /// Quantity in the unit, and the same in base units.
+  quantity          Decimal  @db.Decimal(18, 3)
+  baseQuantity      Decimal  @map("base_quantity") @db.Decimal(18, 3)
+  /// Cost of one of the unit, whole shillings.
+  unitCost          Decimal  @map("unit_cost") @db.Decimal(18, 2)
+  lineTotal         Decimal  @map("line_total") @db.Decimal(18, 2)
+  /// Share of the extra costs, set when received (D-015).
+  allocatedExtra    Decimal  @default(0) @map("allocated_extra") @db.Decimal(18, 2)
+  /// Cost per base unit including extra costs, set when received.
+  landedCostPerBase Decimal? @map("landed_cost_per_base") @db.Decimal(18, 4)
+
+  purchase Purchase    @relation(fields: [shopId, purchaseId], references: [shopId, id], onDelete: Cascade)
+  product  Product     @relation(fields: [shopId, productId], references: [shopId, id], onDelete: Restrict)
+  unit     ProductUnit @relation(fields: [shopId, unitId], references: [shopId, id], onDelete: Restrict)
+
+  @@unique([purchaseId, lineNo])
+  @@index([shopId, productId])
+  @@map("purchase_lines")
+}
+
+model PurchaseCharge {
+  id          String  @id @db.Uuid
+  shopId      String  @map("shop_id") @db.Uuid
+  purchaseId  String  @map("purchase_id") @db.Uuid
+  description String  @db.VarChar(80)
+  amount      Decimal @db.Decimal(18, 2)
+
+  purchase Purchase @relation(fields: [shopId, purchaseId], references: [shopId, id], onDelete: Cascade)
+
+  @@index([purchaseId])
+  @@map("purchase_charges")
+}
+
+model SupplierPayment {
+  id                     String                @id @db.Uuid
+  shopId                 String                @map("shop_id") @db.Uuid
+  supplierId             String                @map("supplier_id") @db.Uuid
+  amount                 Decimal               @db.Decimal(18, 2)
+  method                 SupplierPaymentMethod
+  reference              String?               @db.VarChar(60)
+  note                   String?               @db.VarChar(500)
+  /// Set when the payment was made while receiving a purchase.
+  purchaseId             String?               @map("purchase_id") @db.Uuid
+  idempotencyKey         String                @map("idempotency_key") @db.VarChar(80)
+  requestHash            String                @map("request_hash") @db.Char(64)
+  createdByMembershipId  String                @map("created_by_membership_id") @db.Uuid
+  createdAt              DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  reversedAt             DateTime?             @map("reversed_at") @db.Timestamptz(3)
+  reversedByMembershipId String?               @map("reversed_by_membership_id") @db.Uuid
+  reverseReason          String?               @map("reverse_reason") @db.VarChar(500)
+
+  supplier Supplier              @relation(fields: [shopId, supplierId], references: [shopId, id], onDelete: Restrict)
+  purchase Purchase?             @relation(fields: [shopId, purchaseId], references: [shopId, id], onDelete: Restrict)
+  entries  SupplierLedgerEntry[]
+
+  @@unique([shopId, id])
+  @@unique([shopId, idempotencyKey])
+  @@index([shopId, supplierId, createdAt])
+  @@map("supplier_payments")
+}
+
+/// Append-only supplier account. The supplier's balance is the sum of its
+/// entries; each entry also keeps the balance after it.
+model SupplierLedgerEntry {
+  id                    String            @id @db.Uuid
+  shopId                String            @map("shop_id") @db.Uuid
+  supplierId            String            @map("supplier_id") @db.Uuid
+  type                  SupplierEntryType
+  /// Positive increases what the shop owes; negative reduces it.
+  amount                Decimal           @db.Decimal(18, 2)
+  balanceAfter          Decimal           @map("balance_after") @db.Decimal(18, 2)
+  purchaseId            String?           @map("purchase_id") @db.Uuid
+  paymentId             String?           @map("payment_id") @db.Uuid
+  note                  String?           @db.VarChar(500)
+  createdByMembershipId String            @map("created_by_membership_id") @db.Uuid
+  createdAt             DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  supplier Supplier         @relation(fields: [shopId, supplierId], references: [shopId, id], onDelete: Restrict)
+  purchase Purchase?        @relation(fields: [shopId, purchaseId], references: [shopId, id], onDelete: Restrict)
+  payment  SupplierPayment? @relation(fields: [shopId, paymentId], references: [shopId, id], onDelete: Restrict)
+
+  @@index([shopId, supplierId, createdAt])
+  @@map("supplier_ledger_entries")
 }

@@ -17,7 +17,9 @@ import { SubscriptionsModule } from './modules/subscriptions/subscriptions.modul
 import { HealthModule } from './modules/health/health.module.js';
 import { MembershipsModule } from './modules/memberships/memberships.module.js';
 import { ProductsModule } from './modules/products/products.module.js';
+import { PurchasesModule } from './modules/purchases/purchases.module.js';
 import { ShopsModule } from './modules/shops/shops.module.js';
+import { SuppliersModule } from './modules/suppliers/suppliers.module.js';
 import { UsersModule } from './modules/users/users.module.js';
 
 @Module({
@@ -71,6 +73,8 @@ import { UsersModule } from './modules/users/users.module.js';
     PaymentsModule,
     InventoryModule,
     ProductsModule,
+    SuppliersModule,
+    PurchasesModule,
   ],
 })
 export class AppModule {}

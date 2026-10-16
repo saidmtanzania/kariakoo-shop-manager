@@ -1,6 +1,7 @@
 // Public surface of the data-access layer. Services import Prisma types from
 // here, never from the generated client (architecture rule).
 export { PrismaService } from './prisma.service.js';
+export { nextShopNumber } from './counters.js';
 export {
   GLOBAL_MODELS,
   scopedToShop,
@@ -19,9 +20,12 @@ export {
   OutboxStatus,
   PaymentStatus,
   PlanInterval,
+  PurchaseStatus,
   PermissionScope,
   ShopStatus,
   StockMovementType,
+  SupplierEntryType,
+  SupplierPaymentMethod,
   UserStatus,
 } from '../generated/prisma/client.js';
 export type {
@@ -35,6 +39,9 @@ export type {
   Product,
   ProductCategory,
   ProductUnit,
+  Purchase,
+  PurchaseCharge,
+  PurchaseLine,
   Role,
   Session,
   Shop,
@@ -43,5 +50,8 @@ export type {
   SubscriptionPayment,
   SubscriptionPeriod,
   StockMovement,
+  Supplier,
+  SupplierLedgerEntry,
+  SupplierPayment,
   User,
 } from '../generated/prisma/client.js';

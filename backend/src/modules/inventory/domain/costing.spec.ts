@@ -1,4 +1,8 @@
-import { averageAfterReceipt, costPerBaseUnit } from './costing.js';
+import {
+  averageAfterReceipt,
+  averageAfterRemoval,
+  costPerBaseUnit,
+} from './costing.js';
 
 describe('weighted-average costing (D-003)', () => {
   it('follows the worked example in the data model', () => {
@@ -54,5 +58,39 @@ describe('weighted-average costing (D-003)', () => {
     expect(costPerBaseUnit('1000', '3')).toBe('333.3333');
     expect(costPerBaseUnit('2000', '3')).toBe('666.6667');
     expect(costPerBaseUnit('5000', '0.5')).toBe('10000.0000');
+  });
+});
+
+describe('cancelling a receipt (averageAfterRemoval)', () => {
+  it('undoes the receipt exactly when nothing else happened', () => {
+    const after = averageAfterReceipt(
+      { quantity: '48', averageCost: '1800' },
+      { quantity: '12', unitCost: '2000' },
+    );
+    expect(after).toBe('1840.0000');
+    expect(
+      averageAfterRemoval(
+        { quantity: '60', averageCost: after },
+        { quantity: '12', unitCost: '2000' },
+      ),
+    ).toBe('1800.0000');
+  });
+
+  it('keeps the average when no stock is left', () => {
+    expect(
+      averageAfterRemoval(
+        { quantity: '12', averageCost: '2000' },
+        { quantity: '12', unitCost: '2000' },
+      ),
+    ).toBe('2000.0000');
+  });
+
+  it('never goes below zero', () => {
+    expect(
+      averageAfterRemoval(
+        { quantity: '20', averageCost: '100' },
+        { quantity: '10', unitCost: '500' },
+      ),
+    ).toBe('0.0000');
   });
 });

@@ -1588,6 +1588,460 @@
           "products"
         ]
       }
+    },
+    "/api/v1/shops/current/suppliers": {
+      "get": {
+        "operationId": "SuppliersController_list_v1",
+        "parameters": [
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "maxLength": 100,
+              "type": "string"
+            }
+          },
+          {
+            "name": "archived",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "suppliers"
+        ]
+      },
+      "post": {
+        "operationId": "SuppliersController_create_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateSupplierDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "suppliers"
+        ]
+      }
+    },
+    "/api/v1/shops/current/suppliers/reconciliation": {
+      "get": {
+        "operationId": "SuppliersController_reconciliation_v1",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "suppliers"
+        ]
+      }
+    },
+    "/api/v1/shops/current/suppliers/{supplierId}": {
+      "get": {
+        "operationId": "SuppliersController_get_v1",
+        "parameters": [
+          {
+            "name": "supplierId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "suppliers"
+        ]
+      },
+      "patch": {
+        "operationId": "SuppliersController_update_v1",
+        "parameters": [
+          {
+            "name": "supplierId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSupplierDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "suppliers"
+        ]
+      }
+    },
+    "/api/v1/shops/current/suppliers/{supplierId}/entries": {
+      "get": {
+        "operationId": "SuppliersController_entries_v1",
+        "parameters": [
+          {
+            "name": "supplierId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "suppliers"
+        ]
+      }
+    },
+    "/api/v1/shops/current/suppliers/{supplierId}/payments": {
+      "post": {
+        "operationId": "SuppliersController_pay_v1",
+        "parameters": [
+          {
+            "name": "supplierId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordSupplierPaymentDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "suppliers"
+        ]
+      }
+    },
+    "/api/v1/shops/current/suppliers/{supplierId}/payments/{paymentId}/reverse": {
+      "post": {
+        "operationId": "SuppliersController_reverse_v1",
+        "parameters": [
+          {
+            "name": "supplierId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "paymentId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReasonDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "suppliers"
+        ]
+      }
+    },
+    "/api/v1/shops/current/purchases": {
+      "get": {
+        "operationId": "PurchasesController_list_v1",
+        "parameters": [
+          {
+            "name": "status",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "DRAFT",
+                "RECEIVED",
+                "CANCELLED"
+              ]
+            }
+          },
+          {
+            "name": "supplierId",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "cursor",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "minimum": 1,
+              "maximum": 100,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "purchases"
+        ]
+      },
+      "post": {
+        "operationId": "PurchasesController_create_v1",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreatePurchaseDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "purchases"
+        ]
+      }
+    },
+    "/api/v1/shops/current/purchases/{purchaseId}": {
+      "get": {
+        "operationId": "PurchasesController_get_v1",
+        "parameters": [
+          {
+            "name": "purchaseId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "purchases"
+        ]
+      },
+      "put": {
+        "operationId": "PurchasesController_update_v1",
+        "parameters": [
+          {
+            "name": "purchaseId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PurchaseBodyDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "purchases"
+        ]
+      }
+    },
+    "/api/v1/shops/current/purchases/{purchaseId}/receive": {
+      "post": {
+        "operationId": "PurchasesController_receive_v1",
+        "parameters": [
+          {
+            "name": "purchaseId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReceivePurchaseDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "purchases"
+        ]
+      }
+    },
+    "/api/v1/shops/current/purchases/{purchaseId}/cancel": {
+      "post": {
+        "operationId": "PurchasesController_cancel_v1",
+        "parameters": [
+          {
+            "name": "purchaseId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CancelPurchaseDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "purchases"
+        ]
+      }
     }
   },
   "info": {
@@ -2446,6 +2900,272 @@
             "type": "boolean"
           }
         }
+      },
+      "CreateSupplierDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "phone": {
+            "type": "object",
+            "maxLength": 30
+          },
+          "address": {
+            "type": "object",
+            "maxLength": 200
+          },
+          "note": {
+            "type": "object",
+            "maxLength": 500
+          },
+          "openingBalance": {
+            "type": "object",
+            "example": "150000"
+          }
+        },
+        "required": [
+          "name"
+        ]
+      },
+      "UpdateSupplierDto": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "phone": {
+            "type": "object",
+            "maxLength": 30
+          },
+          "address": {
+            "type": "object",
+            "maxLength": 200
+          },
+          "note": {
+            "type": "object",
+            "maxLength": 500
+          },
+          "archived": {
+            "type": "boolean"
+          }
+        }
+      },
+      "RecordSupplierPaymentDto": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "string",
+            "example": "50000"
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "CASH",
+              "MOBILE_MONEY",
+              "BANK",
+              "OTHER"
+            ]
+          },
+          "reference": {
+            "type": "object",
+            "maxLength": 60
+          },
+          "note": {
+            "type": "object",
+            "maxLength": 500
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 80
+          }
+        },
+        "required": [
+          "amount",
+          "method",
+          "idempotencyKey"
+        ]
+      },
+      "ReasonDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "reason"
+        ]
+      },
+      "PurchaseLineDto": {
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "unitId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "quantity": {
+            "type": "string",
+            "example": "2"
+          },
+          "unitCost": {
+            "type": "string",
+            "example": "21600"
+          }
+        },
+        "required": [
+          "productId",
+          "unitId",
+          "quantity",
+          "unitCost"
+        ]
+      },
+      "PurchaseChargeDto": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "maxLength": 80
+          },
+          "amount": {
+            "type": "string",
+            "example": "1200"
+          }
+        },
+        "required": [
+          "description",
+          "amount"
+        ]
+      },
+      "CreatePurchaseDto": {
+        "type": "object",
+        "properties": {
+          "supplierId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "supplierReference": {
+            "type": "object",
+            "maxLength": 60
+          },
+          "note": {
+            "type": "object",
+            "maxLength": 500
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PurchaseLineDto"
+            }
+          },
+          "charges": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PurchaseChargeDto"
+            }
+          },
+          "idempotencyKey": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 80
+          }
+        },
+        "required": [
+          "supplierId",
+          "lines",
+          "charges",
+          "idempotencyKey"
+        ]
+      },
+      "PurchaseBodyDto": {
+        "type": "object",
+        "properties": {
+          "supplierId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "supplierReference": {
+            "type": "object",
+            "maxLength": 60
+          },
+          "note": {
+            "type": "object",
+            "maxLength": 500
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PurchaseLineDto"
+            }
+          },
+          "charges": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PurchaseChargeDto"
+            }
+          }
+        },
+        "required": [
+          "supplierId",
+          "lines",
+          "charges"
+        ]
+      },
+      "PurchasePaymentDto": {
+        "type": "object",
+        "properties": {
+          "amount": {
+            "type": "string",
+            "example": "20000"
+          },
+          "method": {
+            "type": "string",
+            "enum": [
+              "CASH",
+              "MOBILE_MONEY",
+              "BANK",
+              "OTHER"
+            ]
+          },
+          "reference": {
+            "type": "object",
+            "maxLength": 60
+          }
+        },
+        "required": [
+          "amount",
+          "method"
+        ]
+      },
+      "ReceivePurchaseDto": {
+        "type": "object",
+        "properties": {
+          "payment": {
+            "$ref": "#/components/schemas/PurchasePaymentDto"
+          }
+        }
+      },
+      "CancelPurchaseDto": {
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "reason"
+        ]
       }
     }
   }

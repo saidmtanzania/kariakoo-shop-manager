@@ -26,8 +26,8 @@ Business decisions are `D-xxx`; architecture decisions are `A-xxx`. A decision i
 | D-011 | Returns, refunds and voids policy | Proposed | 07 |
 | D-012 | Login identifier (email vs phone) | Proposed (used in Phase 02) | 02 |
 | D-013 | Fractional quantities | Approved | 05 |
-| D-014 | Purchase orders and partial receiving | Proposed | 06 |
-| D-015 | Landed costs on purchases | Proposed | 06 |
+| D-014 | Purchase orders and partial receiving | Approved | 06 |
+| D-015 | Landed costs on purchases | Approved | 06 |
 | D-016 | Customer credit-limit enforcement | Proposed | 07, 08 |
 | D-017 | Partial payments and unallocated receipts | Proposed | 08 |
 | D-018 | Sale requires open cashier session | Proposed | 07, 08 |
@@ -61,6 +61,11 @@ Business decisions are `D-xxx`; architecture decisions are `A-xxx`. A decision i
 | A-024 | Stock adjustments never take stock below zero | Proposed (used in Phase 05) | 05 |
 | A-025 | Product units, prices and archiving rules | Proposed (used in Phase 05) | 05 |
 | A-026 | One writer for stock balances and movements | Proposed (used in Phase 05) | 05 |
+| A-027 | Cancelling a received purchase | Proposed (used in Phase 06) | 06 |
+| A-028 | Payments to suppliers | Proposed (used in Phase 06) | 06 |
+| A-029 | Reversing a supplier payment | Proposed (used in Phase 06) | 06 |
+| A-030 | Who sees purchase costs and supplier balances | Proposed (used in Phase 06) | 06 |
+| A-031 | Supplier ledger, purchase numbers, rounding and locks | Proposed (used in Phase 06) | 06 |
 
 ---
 
@@ -171,15 +176,19 @@ Business decisions are `D-xxx`; architecture decisions are `A-xxx`. A decision i
 - **How Phase 05 applies it:** `product_units.allow_fraction` (default false). Quantities are stored as `numeric(18,3)`. A quantity entered in a unit must be whole unless that unit allows fractions (422 `fraction_not_allowed`), and the resulting base quantity must be whole unless the base unit allows fractions (422 `base_fraction_not_allowed`). A unit's conversion must be a whole number of base units when the base unit is whole (`conversion_not_whole`).
 - **Status:** Approved by Taibi on 2026-10-16. **Implemented:** Phase 05.
 
-## D-014 Purchase orders and partial receiving
+## D-014 Purchase orders and partial receiving — Approved
 
 - **Recommendation:** No PO workflow in the first release; a purchase is recorded when goods arrive (draft → received). Partial receiving not supported initially; record what actually arrived.
-- **Status:** Proposed.
+- **Decision (approved by Taibi on 2026-10-16, decision card "On arrival"):** no purchase orders. A purchase is a draft until the goods arrive, then it is recorded as it actually arrived. No partial receiving.
+- **How Phase 06 applies it:** a purchase is `DRAFT`, `RECEIVED` or `CANCELLED`. A draft can be changed freely and does not touch stock or the supplier's account. Receiving adds every line to stock and charges the supplier's account in one transaction; a received purchase cannot be edited (the API refuses with 409 `purchase_not_draft` and database triggers back it up). Corrections are made by cancelling (A-027) and recording a new purchase.
+- **Status:** Approved by Taibi on 2026-10-16. **Implemented:** Phase 06.
 
-## D-015 Landed costs
+## D-015 Landed costs — Approved
 
 - **Recommendation:** Optional "extra costs" on a purchase (transport, porters) allocated to items by value and included in unit cost. Alternative: record as expenses only (simpler, understates COGS).
-- **Status:** Proposed (owner preference needed).
+- **Decision (approved by Taibi on 2026-10-16, decision card "Add to cost"):** extra costs such as transport and porters are spread over the purchase lines by value and included in the unit cost.
+- **How Phase 06 applies it:** a purchase has up to 10 extra costs, each a description and a whole-shilling amount. When the purchase is received, the total extra cost is shared over the lines in proportion to their value, in whole shillings, so the shares always add up to the total (largest-remainder method; `allocateCharges` in `packages/shared/src/purchases.ts`). Each line keeps its share and its landed cost per base unit (4 decimals, half-up), and that landed cost is what enters the weighted average (D-003). Extra costs on a purchase whose goods are all free are refused (422 `charges_need_value`). The supplier is owed the goods plus the extra costs; a shop that paid transport to someone else can record it as a payment to the supplier or wait for Phase 08 expenses.
+- **Status:** Approved by Taibi on 2026-10-16. **Implemented:** Phase 06.
 
 ## D-016 Credit-limit enforcement
 
@@ -372,6 +381,41 @@ UUID v7 IDs; Prisma `Decimal` / `decimal.js` in code; strings in JSON; never JS 
 - **Decision used:** only `StockLedgerService` writes `stock_balances` and `stock_movements`; an architecture test fails if any other source file does. Movements, adjustments and price history are append-only (database triggers refuse updates and deletes). Every movement keeps the unit, quantity and conversion the person entered, and the balance after it, so completed records do not change when a unit is edited later. Purchases (Phase 06) and sales (Phase 07) will add their own movement types through the same service.
 - **Status:** Proposed — used in Phase 05. **Date:** 2026-10-16
 
+## A-027 Cancelling a received purchase — Proposed
+
+- **Decision used:** cancelling a received purchase takes each line's stock back out at the landed cost it came in at (movement type `PURCHASE_REVERSAL`) and credits the supplier's account with the purchase total. It is refused when any line's stock has already gone below what was received (409 `insufficient_stock`), whatever the negative-stock setting, because the goods can no longer be returned. The weighted average is recalculated as if those units had not arrived, and never goes below zero. Payments made on arrival stay recorded, so the supplier may end up owing the shop (a negative balance); the money is corrected by reversing the payment (A-029). Cancelling a draft changes nothing else. Cancelling twice changes nothing; a cancelled purchase cannot be received. Needs `purchases.cancel` and a reason (3 to 500 characters).
+- **Status:** Proposed — used in Phase 06. **Date:** 2026-10-16
+
+## A-028 Payments to suppliers — Proposed
+
+- **Decision used:**
+  - A payment needs `supplier_payments.create`, an amount in whole shillings, a method (cash, mobile money, bank, other) and an optional reference. It cannot be more than the shop owes the supplier (409 `payment_exceeds_balance`), checked under a lock on the supplier row, so two payments at once cannot overpay.
+  - Each payment carries an idempotency key; repeating it returns the first payment, and the same key with different details is refused (409 `idempotency_conflict`). A payment made while receiving a purchase uses a key derived from the purchase, so a retried receive never pays twice.
+  - Payments and their reversals stay allowed when the shop is read-only (like customer debt payments, D-005); adding or editing suppliers and recording purchases do not.
+  - A supplier can be added with an opening balance (what the shop already owes), recorded as the first ledger entry. A supplier can be archived only when the balance is zero (409 `supplier_has_balance`); suppliers are never deleted. Supplier names are unique per shop, ignoring case.
+- **Status:** Proposed — used in Phase 06. **Date:** 2026-10-16
+
+## A-029 Reversing a supplier payment — Proposed
+
+- **Decision used:** a payment recorded by mistake is reversed, never edited or deleted: the payment is marked reversed with who, when and why, and a `PAYMENT_REVERSED` ledger entry adds the amount back. Reversing needs `purchases.cancel` (managers by default) and a reason; reversing twice changes nothing.
+- **Status:** Proposed — used in Phase 06. **Date:** 2026-10-16
+
+## A-030 Who sees purchase costs and supplier balances — Proposed
+
+- **Decision used:** extends A-023 to purchases and suppliers. Purchase amounts (unit costs, line totals, extra costs, landed costs, totals, payments), supplier balances and ledger amounts are shown only to people who can see costs (`products.prices.update` or `reports.profit.read`; owners always). Everyone else with `purchases.read` or `suppliers.read` sees the goods, quantities, statuses and contact details with `null` amounts. So a storekeeper can receive goods and see what arrived without seeing what was paid. Creating or changing a purchase means entering costs, so it also needs cost access (403 `permission_denied`), as entering a stock cost does in Phase 05.
+- **Status:** Proposed — used in Phase 06. **Date:** 2026-10-16
+
+## A-031 Supplier ledger, purchase numbers, rounding and locks — Proposed
+
+- **Decision used:**
+  - Only `SupplierLedgerService` changes a supplier's balance, always with an append-only ledger entry that records the balance after it; an architecture test fails if another service writes them, and database triggers refuse updates and deletes. A reconciliation endpoint compares each balance with the sum of its ledger.
+  - Purchase numbers run 1, 2, 3… per shop from a counter row (`shop_counters`), so numbers never collide between shops or under concurrent saves.
+  - Line totals are quantity × unit cost rounded half-up to whole shillings (D-021); landed cost per base unit keeps 4 decimals.
+  - Creating a draft is idempotent (key plus a hash of the content). Receiving and cancelling lock the purchase row and check its status, so repeats and races apply once. Locks are taken in a fixed order: purchase, then stock balances by product id, then the supplier, so concurrent purchases cannot deadlock.
+  - Receiving re-checks every product and unit: an archived product or unit is refused (409 `product_archived`, 404 `unit_not_found`).
+  - Receiving does not change the products' buying prices; the stock cost comes from the landed cost. Changing prices stays a separate, audited step.
+- **Status:** Proposed — used in Phase 06. **Date:** 2026-10-16
+
 ---
 
 ## Approval log
@@ -386,3 +430,5 @@ UUID v7 IDs; Prisma `Decimal` / `decimal.js` in code; strings in JSON; never JS 
 | 2026-10-16 | D-007 | Taibi (decision card "Owner setting") | Blocked below zero by default; an owner can allow it per shop for sales; negative balances flagged in reports. |
 | 2026-10-16 | D-013 | Taibi (decision card "Per unit") | Each unit can allow up to 3 decimal places; pieces and cartons stay whole. |
 | 2026-10-16 | D-021 | Taibi (decision card "Whole TSh") | TZS only; whole-shilling prices stored as numeric(18,2); average cost 4 decimals; lines round half-up. |
+| 2026-10-16 | D-014 | Taibi (decision card "On arrival") | No purchase orders; a draft until the goods arrive, then recorded as they arrived; no partial receiving. |
+| 2026-10-16 | D-015 | Taibi (decision card "Add to cost") | Transport and porter costs spread over the lines by value and included in the unit cost. |

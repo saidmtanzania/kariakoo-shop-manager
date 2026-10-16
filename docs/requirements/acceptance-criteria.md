@@ -69,11 +69,12 @@ Criteria are written as testable statements (Given/When/Then where useful). Each
 
 ## AC-06 Suppliers and purchases
 
-- [ ] Receiving creates movements and updates weighted-average cost correctly for known test cases [D-003].
-- [ ] Receiving the same purchase twice (retry or double click) → one receipt.
-- [ ] Supplier balance = sum of supplier ledger entries; matches outstanding purchases minus payments.
-- [ ] Cancelling a received purchase creates reversing movements and ledger entries.
-- [ ] Partial receiving behaves per [D-014].
+- [x] Receiving creates movements and updates weighted-average cost correctly for known test cases [D-003]. *(24 pieces at 1,800 plus 2 cartons of 12 at 21,600 with 1,200 transport gives a landed cost of 1,850 and an average of 1,825; extra costs spread by value in whole shillings [D-015].)*
+- [x] Receiving the same purchase twice (retry or double click) → one receipt. *(5 receives at once, then another: one movement, one ledger entry, one audit record; a retried receive with a payment pays once.)*
+- [x] Supplier balance = sum of supplier ledger entries; matches outstanding purchases minus payments. *(`GET /shops/current/suppliers/reconciliation`, checked after every purchase test, and a test that it reports a tampered balance; a source scan allows balance writes only in `supplier-ledger.service.ts`.)*
+- [x] Cancelling a received purchase creates reversing movements and ledger entries. *(Stock and average cost return to their earlier values; refused with 409 when the stock has been used [A-027].)*
+- [x] Partial receiving behaves per [D-014]. *(Not supported, as approved: a purchase is received once, as it arrived; received purchases cannot be edited.)*
+- [x] Duplicate requests, invalid quantities, permissions, read-only shops and cross-tenant access are tested. *(Idempotent drafts and payments, payments never above the balance even when sent at once, fractions and zero quantities refused, storekeepers receive without seeing costs [A-030], and another shop's suppliers, purchases and products answer 404.)*
 
 ## AC-07 Sales and POS
 
