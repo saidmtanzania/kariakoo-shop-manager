@@ -24,7 +24,7 @@ export async function resetDatabase(app: INestApplication): Promise<void> {
   await app
     .get(PrismaService)
     .$executeRawUnsafe(
-      'TRUNCATE stock_movements, stock_adjustments, stock_balances, price_history, product_units, products, product_categories, stock_locations, audit_logs, outbox_messages, invitation_roles, invitations, membership_roles, role_permissions, roles, sessions, auth_tokens, shop_memberships, subscription_reminders, payment_events, subscription_periods, subscription_payments, subscriptions, plan_features, plans, shops, users, rate_limit_counters CASCADE',
+      'TRUNCATE supplier_ledger_entries, supplier_payments, purchase_charges, purchase_lines, purchases, suppliers, shop_counters, stock_movements, stock_adjustments, stock_balances, price_history, product_units, products, product_categories, stock_locations, audit_logs, outbox_messages, invitation_roles, invitations, membership_roles, role_permissions, roles, sessions, auth_tokens, shop_memberships, subscription_reminders, payment_events, subscription_periods, subscription_payments, subscriptions, plan_features, plans, shops, users, rate_limit_counters CASCADE',
     );
   // Back to the approved defaults (D-005, D-019).
   await app

@@ -87,6 +87,16 @@ export const KNOWN_ERRORS = new Set([
   'cost_only_for_added_stock',
   'product_archived',
   'invalid_cursor',
+  'supplier_not_found',
+  'supplier_name_taken',
+  'supplier_has_balance',
+  'supplier_archived',
+  'supplier_payment_not_found',
+  'payment_exceeds_balance',
+  'purchase_not_found',
+  'purchase_not_draft',
+  'purchase_cancelled',
+  'charges_need_value',
 ]);
 
 export function errorKey(err: unknown): string {

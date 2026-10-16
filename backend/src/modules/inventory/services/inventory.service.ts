@@ -164,7 +164,7 @@ export class InventoryService {
     const adjustmentId = newId();
     try {
       const movement = await db.$transaction(async (tx) => {
-        const { unit, base } = await this.loadUnit(
+        const { unit, base } = await this.stockUnit(
           tx,
           req.productId,
           req.unitId,
@@ -307,7 +307,11 @@ export class InventoryService {
   ): Promise<StockMovementView> {
     const movement = await scopedToShop(this.prisma, ctx.shopId).$transaction(
       async (tx) => {
-        const { unit, base } = await this.loadUnit(tx, productId, input.unitId);
+        const { unit, base } = await this.stockUnit(
+          tx,
+          productId,
+          input.unitId,
+        );
         const movement = await this.recordOpening(tx, ctx, {
           productId,
           unit,
@@ -507,8 +511,11 @@ export class InventoryService {
     };
   }
 
-  /** The product's unit and base unit; archived products and units are refused. */
-  private async loadUnit(
+  /**
+   * The product's unit and base unit, for recording stock in that unit;
+   * archived products and units are refused. Also used by purchases.
+   */
+  async stockUnit(
     tx: ShopScopedTx,
     productId: string,
     unitId: string,
@@ -575,6 +582,7 @@ export class InventoryService {
       conversion: m.conversion.toFixed(3),
       unitCost: canSeeCosts ? m.unitCost.toFixed(4) : null,
       reason: m.reason,
+      purchaseId: m.purchaseId,
       note: m.note,
       actorName: names.get(m.createdByMembershipId) ?? null,
       createdAt: m.createdAt.toISOString(),

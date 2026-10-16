@@ -282,7 +282,12 @@ export interface ProductDetail {
   createdAt: string;
 }
 
-export type StockMovementType = 'OPENING' | 'ADJUSTMENT_IN' | 'ADJUSTMENT_OUT';
+export type StockMovementType =
+  | 'OPENING'
+  | 'ADJUSTMENT_IN'
+  | 'ADJUSTMENT_OUT'
+  | 'PURCHASE_RECEIPT'
+  | 'PURCHASE_REVERSAL';
 
 export interface StockMovementView {
   id: string;
@@ -298,6 +303,8 @@ export interface StockMovementView {
   /** Per base unit; null unless costs are visible. */
   unitCost: string | null;
   reason: AdjustmentReason | null;
+  /** The purchase that received or reversed this stock. */
+  purchaseId: string | null;
   note: string | null;
   actorName: string | null;
   createdAt: string;

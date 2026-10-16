@@ -192,7 +192,12 @@ function ActiveShop({ info }: { info: SessionInfo }) {
             <dd>{shop.data.currency}</dd>
           </dl>
         ) : null}
-        {can(info, 'products.read') || can(info, 'inventory.read') ? (
+        {[
+          'products.read',
+          'inventory.read',
+          'purchases.read',
+          'suppliers.read',
+        ].some((p) => can(info, p)) ? (
           <div className="grid grid-cols-2 gap-2">
             {can(info, 'products.read') ? (
               <Button asChild>
@@ -202,6 +207,16 @@ function ActiveShop({ info }: { info: SessionInfo }) {
             {can(info, 'inventory.read') ? (
               <Button asChild variant="outline">
                 <Link href="/inventory">{t('Home.inventory')}</Link>
+              </Button>
+            ) : null}
+            {can(info, 'purchases.read') ? (
+              <Button asChild variant="outline">
+                <Link href="/purchases">{t('Home.purchases')}</Link>
+              </Button>
+            ) : null}
+            {can(info, 'suppliers.read') ? (
+              <Button asChild variant="outline">
+                <Link href="/suppliers">{t('Home.suppliers')}</Link>
               </Button>
             ) : null}
           </div>

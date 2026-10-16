@@ -54,7 +54,15 @@ export type AuditAction =
   | 'product.prices_changed'
   | 'inventory.opening_recorded'
   | 'inventory.adjusted'
-  | 'inventory.settings_updated';
+  | 'inventory.settings_updated'
+  | 'supplier.created'
+  | 'supplier.updated'
+  | 'supplier.payment_recorded'
+  | 'supplier.payment_reversed'
+  | 'purchase.created'
+  | 'purchase.updated'
+  | 'purchase.received'
+  | 'purchase.cancelled';
 
 export interface AuditEntry {
   action: AuditAction;

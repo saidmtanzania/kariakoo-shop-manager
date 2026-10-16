@@ -9,7 +9,7 @@ import {
   type ShopScopedTx,
   type StockMovement,
 } from '../../../database/index.js';
-import { averageAfterReceipt } from '../domain/costing.js';
+import { averageAfterReceipt, averageAfterRemoval } from '../domain/costing.js';
 
 /** How a movement changes the balance. */
 export type StockChange =
@@ -21,10 +21,17 @@ export type StockChange =
 export interface MovementRequest {
   productId: string;
   locationId: string;
-  /** OPENING, or ADJUSTMENT (direction follows the sign of the change). */
-  type: 'OPENING' | 'ADJUSTMENT';
+  /**
+   * OPENING; ADJUSTMENT (direction follows the sign of the change);
+   * PURCHASE_RECEIPT (stock in at the purchase's landed cost); or
+   * PURCHASE_REVERSAL (a cancelled purchase taking that stock back out).
+   */
+  type: 'OPENING' | 'ADJUSTMENT' | 'PURCHASE_RECEIPT' | 'PURCHASE_REVERSAL';
   change: StockChange;
-  /** Cost per base unit of stock coming in; defaults to the current average. */
+  /**
+   * Cost per base unit of stock coming in (defaults to the current
+   * average), or, for a purchase reversal, the cost it came in at.
+   */
   unitCost?: string | null;
   /** The unit, quantity and conversion as the person entered them. */
   entered: {
@@ -34,12 +41,31 @@ export interface MovementRequest {
     conversion: string;
   };
   adjustmentId?: string;
+  purchaseId?: string;
   reason?: AdjustmentReason;
   note?: string | null;
   /** Whether the balance may go below zero (D-007). */
   allowNegative: boolean;
   /** Opening stock: refused once the product has any movement. */
   requireNoHistory?: boolean;
+}
+
+function movementType(
+  type: MovementRequest['type'],
+  incoming: boolean,
+): StockMovementType {
+  switch (type) {
+    case 'OPENING':
+      return StockMovementType.OPENING;
+    case 'PURCHASE_RECEIPT':
+      return StockMovementType.PURCHASE_RECEIPT;
+    case 'PURCHASE_REVERSAL':
+      return StockMovementType.PURCHASE_REVERSAL;
+    case 'ADJUSTMENT':
+      return incoming
+        ? StockMovementType.ADJUSTMENT_IN
+        : StockMovementType.ADJUSTMENT_OUT;
+  }
 }
 
 export interface MovementResult {
@@ -124,13 +150,25 @@ export class StockLedgerService {
     }
 
     const incoming = delta > 0n;
+    if (
+      (req.type === 'PURCHASE_RECEIPT' && !incoming) ||
+      (req.type === 'PURCHASE_REVERSAL' && incoming)
+    ) {
+      throw new Error(`${req.type} in the wrong direction`);
+    }
     const quantity = fromScaled(delta, QUANTITY_SCALE);
-    const unitCost =
-      incoming && req.unitCost ? req.unitCost : current.averageCost;
-    const averageCost =
-      incoming && req.unitCost
-        ? averageAfterReceipt(current, { quantity, unitCost })
-        : current.averageCost;
+    let unitCost = current.averageCost;
+    let averageCost = current.averageCost;
+    if (incoming && req.unitCost) {
+      unitCost = req.unitCost;
+      averageCost = averageAfterReceipt(current, { quantity, unitCost });
+    } else if (req.type === 'PURCHASE_REVERSAL' && req.unitCost) {
+      unitCost = req.unitCost;
+      averageCost = averageAfterRemoval(current, {
+        quantity: fromScaled(-delta, QUANTITY_SCALE),
+        unitCost,
+      });
+    }
     const balanceAfter = fromScaled(after, QUANTITY_SCALE);
 
     await db.stockBalance.update({
@@ -149,12 +187,7 @@ export class StockLedgerService {
         shopId: ctx.shopId,
         productId: req.productId,
         locationId: req.locationId,
-        type:
-          req.type === 'OPENING'
-            ? StockMovementType.OPENING
-            : incoming
-              ? StockMovementType.ADJUSTMENT_IN
-              : StockMovementType.ADJUSTMENT_OUT,
+        type: movementType(req.type, incoming),
         quantity,
         balanceAfter,
         unitCost: fromScaled(toScaled(unitCost, COST_SCALE), COST_SCALE),
@@ -163,6 +196,7 @@ export class StockLedgerService {
         unitQuantity: req.entered.quantity,
         conversion: req.entered.conversion,
         adjustmentId: req.adjustmentId ?? null,
+        purchaseId: req.purchaseId ?? null,
         reason: req.reason ?? null,
         note: req.note ?? null,
         createdByMembershipId: ctx.membershipId,

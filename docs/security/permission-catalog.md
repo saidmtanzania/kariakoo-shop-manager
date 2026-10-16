@@ -60,13 +60,13 @@ Columns M, C and S show the default Manager, Cashier and Storekeeper roles that 
 
 | Code | English | Kiswahili | M | C | S | Used by (Phase 03) |
 |---|---|---|---|---|---|---|
-| `suppliers.read` | See suppliers | Kuona wasambazaji | ✓ |  | ✓ | Later phase |
-| `suppliers.manage` | Manage suppliers | Kusimamia wasambazaji | ✓ |  |  | Later phase |
-| `purchases.read` | See purchases | Kuona manunuzi | ✓ |  | ✓ | Later phase |
-| `purchases.create` | Create purchases | Kuunda manunuzi | ✓ |  |  | Later phase |
-| `purchases.receive` | Receive goods | Kupokea mzigo | ✓ |  | ✓ | Later phase |
-| `purchases.cancel` | Cancel purchases | Kughairi manunuzi | ✓ |  |  | Later phase |
-| `supplier_payments.create` | Pay suppliers | Kulipa wasambazaji | ✓ |  |  | Later phase |
+| `suppliers.read` | See suppliers | Kuona wasambazaji | ✓ |  | ✓ | Phase 06 |
+| `suppliers.manage` | Manage suppliers | Kusimamia wasambazaji | ✓ |  |  | Phase 06 |
+| `purchases.read` | See purchases | Kuona manunuzi | ✓ |  | ✓ | Phase 06 |
+| `purchases.create` | Create purchases | Kuunda manunuzi | ✓ |  |  | Phase 06 |
+| `purchases.receive` | Receive goods | Kupokea mzigo | ✓ |  | ✓ | Phase 06 |
+| `purchases.cancel` | Cancel purchases | Kughairi manunuzi | ✓ |  |  | Phase 06 |
+| `supplier_payments.create` | Pay suppliers | Kulipa wasambazaji | ✓ |  |  | Phase 06 |
 
 ### Customers / Wateja
 
