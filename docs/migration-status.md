@@ -2,18 +2,18 @@
 
 | Field | Value |
 |---|---|
-| Last updated | 2026-10-15 (Phase 03) |
+| Last updated | 2026-10-16 (Phase 04) |
 
 ## Current state
 
 | Item | State |
 |---|---|
 | Repository | pnpm workspace: `apps/web`, `backend`, `packages/shared`, `tests` |
-| Application code | Health endpoints; sign-in, registration, email confirmation, password recovery; shops and active-shop switching; permissions, custom roles, member management, staff invitations, the audit log list and an email outbox; web screens for all of these, including Team and invitation acceptance. No subscriptions, products, inventory or sales. |
-| Prisma schema | 14 models: users, sessions, auth_tokens, shops, shop_memberships, audit_logs, rate_limit_counters, permissions, roles, role_permissions, membership_roles, invitations, invitation_roles, outbox_messages |
-| Migrations | 3 written, all applied to a clean database (see history) |
+| Application code | Health endpoints; sign-in, registration, email confirmation, password recovery; shops and active-shop switching; permissions, custom roles, member management, staff invitations, the audit log list and an email outbox; plans, shop subscriptions (trial, grace, read-only), manual subscription payments with platform confirmation, a payment provider adapter with signed callbacks and reconciliation, expiry reminders; web screens for all of these, including Team, invitation acceptance, Subscription and Platform admin. No products, inventory or sales. |
+| Prisma schema | 22 models: users, sessions, auth_tokens, shops, shop_memberships, audit_logs, rate_limit_counters, permissions, roles, role_permissions, membership_roles, invitations, invitation_roles, outbox_messages, plans, plan_features, billing_settings, subscriptions, subscription_periods, subscription_payments, payment_events, subscription_reminders |
+| Migrations | 4 written, all applied to a clean database (see history) |
 | Databases | Local Docker Compose PostgreSQL 17 only; no hosted environments |
-| CI | GitHub Actions. Phase 01 (PR #1) and Phase 02 (PR #2) passed on GitHub and were merged on 2026-10-15. PR #1 merged into `main`; PR #2 merged into `phase-01-dev-environment`, so `main` does not contain Phase 02 yet (the Phase 03 PR brings both). |
+| CI | GitHub Actions. Phase 01 (PR #1) and Phase 02 (PR #2) passed on GitHub and were merged on 2026-10-15. PR #1 merged into `main`; PR #2 merged into `phase-01-dev-environment`; PR #3 brought Phases 02 and 03 into `main`. |
 
 ## Phase log
 
@@ -22,8 +22,9 @@
 | 00 Requirements and architecture | **Complete** — D-001 to D-004 approved by owner | 2026-10-12 | Documents listed below |
 | 01 Repository and environment | **Merged** (PR #1 into `main`) | 2026-10-15 | Verification record below, `docs/phase-01-report.md`, PR #1 |
 | 02 Authentication and shop isolation | **Merged** (PR #2, into `phase-01-dev-environment`) | 2026-10-15 | Verification record below, `docs/phase-02-report.md` |
-| 03 Dynamic RBAC and invitations | **Implemented and verified locally; awaiting owner acceptance** | 2026-10-15 | Verification record below, `docs/phase-03-report.md` |
-| 04–12 | Not started | — | — |
+| 03 Dynamic RBAC and invitations | **Merged** (PR #3 into `main`) | 2026-10-15 | Verification record below, `docs/phase-03-report.md` |
+| 04 Plans and subscriptions | **Implemented and verified locally; awaiting owner acceptance** | 2026-10-16 | Verification record below, `docs/phase-04-report.md` |
+| 05–12 | Not started | — | — |
 
 ## Phase 00 record
 
@@ -147,6 +148,44 @@ Additional checks on 2026-10-15:
 - Delivery through a real email provider: only Mailpit was used.
 - Behaviour with several API instances running the outbox worker at once is covered by one integration test (two app instances draining together), not by a multi-container run.
 
+## Phase 04 verification record
+
+Run on 2026-10-16 from a fresh `git clone` of commit `7613203` (branch `phase-04-subscriptions`) into an empty directory, with `.env` copied from `.env.example` and pointed at a brand-new database (`ksm_verify04`). Same environment as Phase 03. Only `DATABASE_URL`, `WEB_ORIGIN` and `API_INTERNAL_URL` were exported.
+
+| # | Command | Result |
+|---|---|---|
+| 1 | `pnpm install --frozen-lockfile` | exit 0 |
+| 2 | `pnpm format:check` | exit 0 |
+| 3 | `pnpm --filter @ksm/shared build` | exit 0 |
+| 4 | `pnpm lint` | exit 0; no warnings or errors |
+| 5 | `pnpm typecheck` | exit 0 (all 4 packages) |
+| 6 | `pnpm test` | exit 0; shared 40/40, backend 24/24, web 15/15 passed |
+| 7 | `pnpm test:architecture` | exit 0; no violations (155 modules, 589 dependencies) |
+| 8 | `pnpm db:migrate` | exit 0; all four migrations applied to the empty database |
+| 9 | `pnpm --filter backend db:check-drift` | exit 0; no drift |
+| 10 | `pnpm test:integration` | exit 0; 162/162 passed against real PostgreSQL (127 before this phase) |
+| 11 | `pnpm build` | exit 0 |
+| 12 | `pnpm test:e2e` | exit 0; 22/22 passed (11 tests on desktop and Pixel 7 Chromium), API in production mode sending real SMTP to Mailpit; the platform staff flag was granted with the real `platform:admin` command |
+| 13 | `pnpm openapi:export` | exit 0; identical to the committed `docs/api/openapi.json` |
+| 14 | `git status --porcelain` | clean |
+
+Additional checks on 2026-10-16:
+
+| Check | Result |
+|---|---|
+| Negative test: callback signature check turned off | 1 integration test failed, as intended; change reverted |
+| Negative test: read-only check turned off in the guard | 2 integration tests failed, as intended; change reverted |
+| Negative test: platform staff check turned off in the guard | 2 integration tests failed, as intended; change reverted |
+| Negative test: callback amount check turned off | 1 integration test failed, as intended; change reverted |
+| `docker compose up --build` full stack from a clean clone | migrate applied all four migrations; API, web, PostgreSQL and Mailpit healthy; Playwright 22/22 passed against the containers (with `RATE_LIMIT_MULTIPLIER=10` on the API); "payment confirmed" emails arrived in the Mailpit container |
+
+### Not verified (Phase 04)
+
+- GitHub Actions has not run Phase 04 yet; it runs when the PR opens.
+- Docker images were built with the local certificate workaround, and pulled `node:22-alpine` from its public mirror (`public.ecr.aws/docker/library/node`) because Docker Hub rate-limited this sandbox. The committed Dockerfiles are unchanged.
+- No real mobile-money provider exists to test against; the sandbox provider stands in for one.
+- The reminder and reconciliation jobs were run directly by tests, not on their 5-minute timer, and not with several API instances.
+
 ## Migration history
 
 | # | Migration | Phase | Applied to clean DB | Notes |
@@ -154,3 +193,4 @@ Additional checks on 2026-10-15:
 | 1 | `20261015053259_init_extensions` | 01 | Yes, 2026-10-15 (local and in the compose migrate job) | `CREATE EXTENSION IF NOT EXISTS citext;` for case-insensitive emails in Phase 02. No tables. |
 | 2 | `20261015055844_auth_and_tenancy` | 02 | Yes, 2026-10-15 (clean clone database and compose migrate job) | Enums and tables for users, sessions, auth tokens, shops, memberships, audit logs and rate-limit counters, plus the append-only trigger on `audit_logs`. Additive only. |
 | 3 | `20261015063853_rbac_and_invitations` | 03 | Yes, 2026-10-15 (clean clone database and compose migrate job) | Enums `PermissionScope`, `InvitationStatus`, `OutboxStatus`; tables `permissions` (48 rows inserted), `roles`, `role_permissions`, `membership_roles`, `invitations`, `invitation_roles`, `outbox_messages`; trigger `role_permissions_shop_scope_only`. Additive only. Existing shops get no default roles (only shops created after the migration do); there are no production shops yet. |
+| 4 | `20261016060401_subscriptions` | 04 | Yes, 2026-10-16 (clean clone database and compose migrate job) | Enums `PlanInterval`, `PaymentStatus`; tables `plans`, `plan_features`, `billing_settings` (1 row: 14-day trial, reminders 3 days before), `subscriptions`, `subscription_periods`, `subscription_payments`, `payment_events`, `subscription_reminders`; check constraints; triggers `subscription_periods_append_only` and `payment_events_no_delete`. Additive only. Every existing shop gets a 14-day trial starting when the migration runs. No plans are inserted. |
